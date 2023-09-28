@@ -1,0 +1,135 @@
+{
+  "GroupDefinitions": [
+    {
+      "Type": "DIMENSION",
+      "Key": "USAGE_TYPE"
+    }
+  ],
+  "ResultsByTime": [
+    {
+      "TimePeriod": {
+        "Start": "2023-09-20",
+        "End": "2023-09-21"
+      },
+      "Total": {},
+      "Groups": [
+        {
+          "Keys": [
+            "Aurora:BackupUsage"
+          ],
+          "Metrics": {
+            "BlendedCost": {
+              "Amount": "0.0000638928",
+              "Unit": "USD"
+            },
+            "UnblendedCost": {
+              "Amount": "0.000049836",
+              "Unit": "USD"
+            },
+            "UsageQuantity": {
+              "Amount": "0.0030426024",
+              "Unit": "GB-Month"
+            }
+          }
+        },
+        {
+          "Keys": [
+            "Aurora:ServerlessV2Usage"
+          ],
+          "Metrics": {
+            "BlendedCost": {
+              "Amount": "2.88",
+              "Unit": "USD"
+            },
+            "UnblendedCost": {
+              "Amount": "2.2464",
+              "Unit": "USD"
+            },
+            "UsageQuantity": {
+              "Amount": "24",
+              "Unit": "ACU-Hr"
+            }
+          }
+        },
+        {
+          "Keys": [
+            "Aurora:StorageIOUsage"
+          ],
+          "Metrics": {
+            "BlendedCost": {
+              "Amount": "0.0947532",
+              "Unit": "USD"
+            },
+            "UnblendedCost": {
+              "Amount": "0.073907496",
+              "Unit": "USD"
+            },
+            "UsageQuantity": {
+              "Amount": "473766",
+              "Unit": "IOs"
+            }
+          }
+        },
+        {
+          "Keys": [
+            "Aurora:StorageUsage"
+          ],
+          "Metrics": {
+            "BlendedCost": {
+              "Amount": "0.0003329539",
+              "Unit": "USD"
+            },
+            "UnblendedCost": {
+              "Amount": "0.0002597037",
+              "Unit": "USD"
+            },
+            "UsageQuantity": {
+              "Amount": "0.0033295316",
+              "Unit": "GB-Month"
+            }
+          }
+        },
+        {
+          "Keys": [
+            "DataTransfer-In-Bytes"
+          ],
+          "Metrics": {
+            "BlendedCost": {
+              "Amount": "0",
+              "Unit": "USD"
+            },
+            "UnblendedCost": {
+              "Amount": "0",
+              "Unit": "USD"
+            },
+            "UsageQuantity": {
+              "Amount": "0.0002702664",
+              "Unit": "GB"
+            }
+          }
+        },
+        {
+          "Keys": [
+            "DataTransfer-Out-Bytes"
+          ],
+          "Metrics": {
+            "BlendedCost": {
+              "Amount": "0",
+              "Unit": "USD"
+            },
+            "UnblendedCost": {
+              "Amount": "0",
+              "Unit": "USD"
+            },
+            "UsageQuantity": {
+              "Amount": "0.000270665",
+              "Unit": "GB"
+            }
+          }
+        }
+      ],
+      "Estimated": true
+    }
+  ],
+  "DimensionValueAttributes": []
+}

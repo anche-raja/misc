@@ -1,7 +1,8 @@
-const AWS = require("aws-sdk");
-const costexplorer = new AWS.CostExplorer({ region: "us-east-1" }); // Cost Explorer API operations are currently available in the US East (N. Virginia) region only
+import { CostExplorer } from "aws-sdk";
 
-exports.handler = async (event) => {
+const costexplorer = new CostExplorer({ region: "us-east-1" }); // Cost Explorer API operations are currently available in the US East (N. Virginia) region only
+
+export const handler = async (event) => {
   const params = {
     TimePeriod: {
       Start: "2023-01-01", // Adjust this based on your requirement

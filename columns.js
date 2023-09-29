@@ -41,3 +41,47 @@ const formatIntoColumns = (response) => {
 };
 
 console.log(formatIntoColumns(response));
+
+
+
+
+
+
+
+const data = {
+    //... (Your provided JSON data)
+};
+
+const displayAsTable = (data) => {
+    const header = [
+        "Date Start",
+        "Date End",
+        "Usage Type",
+        "Blended Cost",
+        "Unblended Cost",
+        "Usage Quantity",
+        "Unit"
+    ];
+    const divider = header.map(title => "-".repeat(title.length)).join(" | ");
+    
+    console.log(header.join(" | "));
+    console.log(divider);
+
+    data.ResultsByTime.forEach(timePeriod => {
+        const startDate = timePeriod.TimePeriod.Start;
+        const endDate = timePeriod.TimePeriod.End;
+
+        timePeriod.Groups.forEach(group => {
+            const usageType = group.Keys[0];
+            const blendedCost = group.Metrics.BlendedCost.Amount;
+            const unblendedCost = group.Metrics.UnblendedCost.Amount;
+            const usageQuantity = group.Metrics.UsageQuantity.Amount;
+            const unit = group.Metrics.UsageQuantity.Unit;
+
+            console.log([startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(" | "));
+        });
+    });
+};
+
+displayAsTable(data);
+

@@ -23,12 +23,13 @@ const displayAsTable = (data) => {
     ];
     const divider = header.map(title => "-".repeat(title.length)).join(" | ");
     
-    console.log(header.join(" | "));
-    console.log(divider);
-
     data.ResultsByTime.forEach(timePeriod => {
         const startDate = timePeriod.TimePeriod.Start;
         const endDate = timePeriod.TimePeriod.End;
+
+        // Display headers for each day
+        console.log(header.join(" | "));
+        console.log(divider);
 
         timePeriod.Groups.forEach(group => {
             const usageType = group.Keys[0].padEnd(colWidths[2]);
@@ -40,7 +41,7 @@ const displayAsTable = (data) => {
             console.log([startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(" | "));
         });
 
-        console.log(divider);  // print a divider after each day for better visual separation
+        console.log(divider);  // print a divider after each day for visual separation
     });
 };
 

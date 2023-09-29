@@ -17,7 +17,7 @@ exports.handler = async (event) => {
         "IAM"
     ];
 
-    let combinedResponse = [];
+    let combinedData = [];
 
     for (let service of services) {
         const params = {
@@ -41,14 +41,35 @@ exports.handler = async (event) => {
 
         try {
             const response = await costexplorer.getCostAndUsage(params).promise();
-            combinedResponse.push(...response.ResultsByTime);
+
+            response.ResultsByTime.forEach(timePeriod => {
+                timePeriod.Groups.forEach(group => {
+                    combinedData.push({
+                        dateStart: timePeriod.TimePeriod.Start,
+                        dateEnd: timePeriod.TimePeriod.End,
+                        service: service,
+                        usageType: group.Keys[0],
+                        blendedCost: parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2),
+                        unblendedCost: parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2),
+                        usageQuantity: parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2),
+                        unit: group.Metrics.UsageQuantity.Unit
+                    });
+                });
+            });
+
         } catch (error) {
             console.error(`Error fetching cost data for ${service}:`, error);
             throw error;
         }
     }
 
-    const csvContent = writeToCSV(combinedResponse);
+    // Sort by date and service
+    combinedData.sort((a, b) => {
+        if (a.dateStart !== b.dateStart) return new Date(a.dateStart) - new Date(b.dateStart);
+        return a.service.localeCompare(b.service);
+    });
+
+    const csvContent = writeToCSV(combinedData);
     const filePath = '/tmp/data.csv';
     fs.writeFileSync(filePath, csvContent);
 
@@ -69,22 +90,11 @@ exports.handler = async (event) => {
 };
 
 const writeToCSV = (data) => {
-    const header = ["Date Start", "Date End", "Usage Type", "Blended Cost", "Unblended Cost", "Usage Quantity", "Unit"];
+    const header = ["Date Start", "Date End", "Service", "Usage Type", "Blended Cost", "Unblended Cost", "Usage Quantity", "Unit"];
     let csvContent = header.join(",") + "\n";
 
-    data.forEach(timePeriod => {
-        const startDate = timePeriod.TimePeriod.Start;
-        const endDate = timePeriod.TimePeriod.End;
-
-        timePeriod.Groups.forEach(group => {
-            const usageType = group.Keys[0];
-            const blendedCost = parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2);
-            const unblendedCost = parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2);
-            const usageQuantity = parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2);
-            const unit = group.Metrics.UsageQuantity.Unit;
-
-            csvContent += [startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(",") + "\n";
-        });
+    data.forEach(entry => {
+        csvContent += [entry.dateStart, entry.dateEnd, entry.service, entry.usageType, entry.blendedCost, entry.unblendedCost, entry.usageQuantity, entry.unit].join(",") + "\n";
     });
 
     return csvContent;

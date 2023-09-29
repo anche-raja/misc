@@ -13,39 +13,48 @@ exports.handler = async (event) => {
         "AWS CodeDeploy",
         "AWS CodeBuild",
         "AWS CodeCommit",
-        "AWS Data Transfer",
         "Amazon Virtual Private Cloud",
-        "Amazon VPC Subnets",
-        "Amazon VPC Security Groups",
-        "AWS Identity and Access Management"
+        "IAM"
     ];
+
     let combinedResponse = [];
 
     for (let service of services) {
         const params = {
-            //... (same params as before, but with "Values": [service] for the Filter)
-            "Filter": {
-                "Dimensions": {
-                    "Key": "SERVICE",
-                    "Values": [service],
+            TimePeriod: {
+                Start: "2023-09-20",
+                End: "2023-09-25"
+            },
+            Granularity: "DAILY",
+            Filter: {
+                Dimensions: {
+                    Key: "SERVICE",
+                    Values: [service],
                 }
             },
+            GroupBy: [{
+                Type: "DIMENSION",
+                Key: "USAGE_TYPE"
+            }],
+            Metrics: ["BlendedCost", "UnblendedCost", "UsageQuantity"]
         };
 
-        let serviceResponse = await costexplorer.getCostAndUsage(params).promise();
-        combinedResponse.push(...serviceResponse.ResultsByTime);
+        try {
+            const response = await costexplorer.getCostAndUsage(params).promise();
+            combinedResponse.push(...response.ResultsByTime);
+        } catch (error) {
+            console.error(`Error fetching cost data for ${service}:`, error);
+            throw error;
+        }
     }
 
-    // Now you have the combinedResponse with data from all services
     const csvContent = writeToCSV(combinedResponse);
-
-    // Write the CSV content to a file in the Lambda tmp directory
     const filePath = '/tmp/data.csv';
-    await fs.writeFileSync(filePath, csvContent);
+    fs.writeFileSync(filePath, csvContent);
 
-    // Upload the CSV to S3
     const bucketName = 'q3-cc-db-remote-state';
-    const key = 'data.csv';  // or any desired path in the bucket
+    const key = 'data.csv';
+
     await s3.putObject({
         Bucket: bucketName,
         Key: key,
@@ -55,28 +64,28 @@ exports.handler = async (event) => {
 
     return {
         statusCode: 200,
-        body: JSON.stringify({message: 'CSV written to S3 successfully!'}),
+        body: JSON.stringify({ message: 'CSV written to S3 successfully!' }),
     };
 };
 
-// ... (the rest of your functions remain unchanged)
-
-// Modify your writeToCSV function to calculate total and average
 const writeToCSV = (data) => {
-    //... (rest of the code)
-    // After processing each service and day:
+    const header = ["Date Start", "Date End", "Usage Type", "Blended Cost", "Unblended Cost", "Usage Quantity", "Unit"];
+    let csvContent = header.join(",") + "\n";
 
-    // Add Total and Average for all days:
-    const totalCost = data.reduce((sum, timePeriod) => {
-        return sum + timePeriod.Groups.reduce((groupSum, group) => {
-            return groupSum + parseFloat(group.Metrics.BlendedCost.Amount);
-        }, 0);
-    }, 0);
+    data.forEach(timePeriod => {
+        const startDate = timePeriod.TimePeriod.Start;
+        const endDate = timePeriod.TimePeriod.End;
 
-    const averageCost = totalCost / data.length;
-    
-    csvContent += `\nTotal Cost for all days: $${totalCost.toFixed(2)}\n`;
-    csvContent += `Average Cost per day: $${averageCost.toFixed(2)}\n`;
+        timePeriod.Groups.forEach(group => {
+            const usageType = group.Keys[0];
+            const blendedCost = parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2);
+            const unblendedCost = parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2);
+            const usageQuantity = parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2);
+            const unit = group.Metrics.UsageQuantity.Unit;
+
+            csvContent += [startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(",") + "\n";
+        });
+    });
 
     return csvContent;
 };

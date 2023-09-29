@@ -1,46 +1,51 @@
 const AWS = require("aws-sdk");
-const costexplorer = new AWS.CostExplorer({ region: "us-east-1" }); // Cost Explorer API operations are currently available in the US East (N. Virginia) region only
+const costexplorer = new AWS.CostExplorer({ region: "us-east-1" });
 const fs = require('fs');
 const s3 = new AWS.S3();
+
 exports.handler = async (event) => {
+    const services = [
+        "Amazon Relational Database Service",
+        "Amazon Elastic Container Service",
+        "Amazon Elastic Container Registry",
+        "Amazon Elastic Compute Cloud",
+        "Amazon Simple Storage Service",
+        "AWS CodeDeploy",
+        "AWS CodeBuild",
+        "AWS CodeCommit",
+        "AWS Data Transfer",
+        "Amazon Virtual Private Cloud",
+        "Amazon VPC Subnets",
+        "Amazon VPC Security Groups",
+        "AWS Identity and Access Management"
+    ];
+    let combinedResponse = [];
 
-const  params ={
-  "TimePeriod": {
-    "Start":"2023-09-20",
-    "End": "2023-09-25"
-  },
-  "Granularity": "DAILY",
-  "Filter": {      
-    "Dimensions": {
-      "Key": "SERVICE",
-        "Values": ["Amazon Relational Database Service"],
+    for (let service of services) {
+        const params = {
+            //... (same params as before, but with "Values": [service] for the Filter)
+            "Filter": {
+                "Dimensions": {
+                    "Key": "SERVICE",
+                    "Values": [service],
+                }
+            },
+        };
+
+        let serviceResponse = await costexplorer.getCostAndUsage(params).promise();
+        combinedResponse.push(...serviceResponse.ResultsByTime);
     }
-  },
-  "GroupBy":[
-    {
-      "Type":"DIMENSION",
-      "Key":"USAGE_TYPE"
-    }
-  ],
-   "Metrics":["BlendedCost", "UnblendedCost", "UsageQuantity"]
-}
-  try {
-    const response = await costexplorer.getCostAndUsage(params).promise();
-    //console.log(response);
 
-    // Process and format the response if needed
-
-    await displayAsTable(response);
-    //console.log(formatIntoColumns(response));
-    const csvContent = writeToCSV(response);
+    // Now you have the combinedResponse with data from all services
+    const csvContent = writeToCSV(combinedResponse);
 
     // Write the CSV content to a file in the Lambda tmp directory
     const filePath = '/tmp/data.csv';
     await fs.writeFileSync(filePath, csvContent);
-        // Upload the CSV to S3
+
+    // Upload the CSV to S3
     const bucketName = 'q3-cc-db-remote-state';
     const key = 'data.csv';  // or any desired path in the bucket
-
     await s3.putObject({
         Bucket: bucketName,
         Key: key,
@@ -52,136 +57,26 @@ const  params ={
         statusCode: 200,
         body: JSON.stringify({message: 'CSV written to S3 successfully!'}),
     };
-
-    //return true;
-  } catch (error) {
-    console.error(`Error fetching cost data:`, error);
-    throw error;
-  }
 };
 
+// ... (the rest of your functions remain unchanged)
 
-
-const displayAsTable = (data) => {
-    const colWidths = [
-        "Date Start".length,
-        "Date End".length,
-        "Usage Type".length + 5,
-        "Blended Cost".length,
-        "Unblended Cost".length,
-        "Usage Quantity".length,
-        "Unit".length
-    ];
-    const header = [
-        "Date Start".padEnd(colWidths[0]),
-        "Date End".padEnd(colWidths[1]),
-        "Usage Type".padEnd(colWidths[2]),
-        "Blended Cost".padEnd(colWidths[3]),
-        "Unblended Cost".padEnd(colWidths[4]),
-        "Usage Quantity".padEnd(colWidths[5]),
-        "Unit".padEnd(colWidths[6])
-    ];
-    const divider = header.map(title => "-".repeat(title.length)).join(" | ");
-    
-    data.ResultsByTime.forEach(timePeriod => {
-        const startDate = timePeriod.TimePeriod.Start;
-        const endDate = timePeriod.TimePeriod.End;
-
-        // Display headers for each day
-        console.log(header.join(" | "));
-        console.log(divider);
-
-        timePeriod.Groups.forEach(group => {
-            const usageType = group.Keys[0].padEnd(colWidths[2]);
-            const blendedCost = parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2).padEnd(colWidths[3]);
-            const unblendedCost = parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2).padEnd(colWidths[4]);
-            const usageQuantity = parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2).padEnd(colWidths[5]);
-            const unit = group.Metrics.UsageQuantity.Unit.padEnd(colWidths[6]);
-
-            console.log([startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(" | "));
-        });
-
-        console.log(divider);  // print a divider after each day for visual separation
-    });
-};
-
-
-
-
-const formatIntoColumns = (response) => {
-  if (
-    !response.ResultsByTime ||
-    !response.ResultsByTime[0] ||
-    !response.ResultsByTime[0].Groups
-  ) {
-    return "Invalid data format";
-  }
-
-  const groups = response.ResultsByTime[0].Groups;
-
-  // Header row
-  let tableString =
-    "Usage Type".padEnd(30) +
-    "Blended Cost".padEnd(20) +
-    "Unblended Cost".padEnd(20) +
-    "Usage Quantity".padEnd(20) +
-    "\n";
-  tableString += "-".repeat(90) + "\n"; // Add a line for clarity
-
-  // Data rows
-  for (let group of groups) {
-    const usageType = group.Keys[0];
-    const blendedCost = group.Metrics.BlendedCost.Amount;
-    const unblendedCost = group.Metrics.UnblendedCost.Amount;
-    const usageQuantity = group.Metrics.UsageQuantity.Amount;
-
-    tableString +=
-      usageType.padEnd(30) +
-      blendedCost.padEnd(20) +
-      unblendedCost.padEnd(20) +
-      usageQuantity.padEnd(20) +
-      "\n";
-  }
-
-  return tableString;
-};
-
-
+// Modify your writeToCSV function to calculate total and average
 const writeToCSV = (data) => {
-    const colWidths = [
-        "Date Start".length,
-        "Date End".length,
-        "Usage Type".length + 5,
-        "Blended Cost".length,
-        "Unblended Cost".length,
-        "Usage Quantity".length,
-        "Unit".length
-    ];
-    const header = [
-        "Date Start",
-        "Date End",
-        "Usage Type",
-        "Blended Cost",
-        "Unblended Cost",
-        "Usage Quantity",
-        "Unit"
-    ];
-    let csvContent = header.join(",") + "\n";
+    //... (rest of the code)
+    // After processing each service and day:
 
-    data.ResultsByTime.forEach(timePeriod => {
-        const startDate = timePeriod.TimePeriod.Start;
-        const endDate = timePeriod.TimePeriod.End;
+    // Add Total and Average for all days:
+    const totalCost = data.reduce((sum, timePeriod) => {
+        return sum + timePeriod.Groups.reduce((groupSum, group) => {
+            return groupSum + parseFloat(group.Metrics.BlendedCost.Amount);
+        }, 0);
+    }, 0);
 
-        timePeriod.Groups.forEach(group => {
-            const usageType = group.Keys[0];
-            const blendedCost = parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2);
-            const unblendedCost = parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2);
-            const usageQuantity = parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2);
-            const unit = group.Metrics.UsageQuantity.Unit;
-
-            csvContent += [startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(",") + "\n";
-        });
-    });
+    const averageCost = totalCost / data.length;
+    
+    csvContent += `\nTotal Cost for all days: $${totalCost.toFixed(2)}\n`;
+    csvContent += `Average Cost per day: $${averageCost.toFixed(2)}\n`;
 
     return csvContent;
 };

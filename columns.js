@@ -1,8 +1,8 @@
-const data = {
-    //... (Your provided JSON data)
-};
+const AWS = require('aws-sdk');
+const fs = require('fs');
+const s3 = new AWS.S3();
 
-const displayAsTable = (data) => {
+const writeToCSV = (data) => {
     const colWidths = [
         "Date Start".length,
         "Date End".length,
@@ -13,36 +13,58 @@ const displayAsTable = (data) => {
         "Unit".length
     ];
     const header = [
-        "Date Start".padEnd(colWidths[0]),
-        "Date End".padEnd(colWidths[1]),
-        "Usage Type".padEnd(colWidths[2]),
-        "Blended Cost".padEnd(colWidths[3]),
-        "Unblended Cost".padEnd(colWidths[4]),
-        "Usage Quantity".padEnd(colWidths[5]),
-        "Unit".padEnd(colWidths[6])
+        "Date Start",
+        "Date End",
+        "Usage Type",
+        "Blended Cost",
+        "Unblended Cost",
+        "Usage Quantity",
+        "Unit"
     ];
-    const divider = header.map(title => "-".repeat(title.length)).join(" | ");
-    
+    let csvContent = header.join(",") + "\n";
+
     data.ResultsByTime.forEach(timePeriod => {
         const startDate = timePeriod.TimePeriod.Start;
         const endDate = timePeriod.TimePeriod.End;
 
-        // Display headers for each day
-        console.log(header.join(" | "));
-        console.log(divider);
-
         timePeriod.Groups.forEach(group => {
-            const usageType = group.Keys[0].padEnd(colWidths[2]);
-            const blendedCost = parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2).padEnd(colWidths[3]);
-            const unblendedCost = parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2).padEnd(colWidths[4]);
-            const usageQuantity = parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2).padEnd(colWidths[5]);
-            const unit = group.Metrics.UsageQuantity.Unit.padEnd(colWidths[6]);
+            const usageType = group.Keys[0];
+            const blendedCost = parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2);
+            const unblendedCost = parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2);
+            const usageQuantity = parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2);
+            const unit = group.Metrics.UsageQuantity.Unit;
 
-            console.log([startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(" | "));
+            csvContent += [startDate, endDate, usageType, blendedCost, unblendedCost, usageQuantity, unit].join(",") + "\n";
         });
-
-        console.log(divider);  // print a divider after each day for visual separation
     });
+
+    return csvContent;
 };
 
-displayAsTable(data);
+exports.handler = async (event) => {
+    const data = {
+        //... (Your provided JSON data)
+    };
+
+    const csvContent = writeToCSV(data);
+
+    // Write the CSV content to a file in the Lambda tmp directory
+    const filePath = '/tmp/data.csv';
+    fs.writeFileSync(filePath, csvContent);
+
+    // Upload the CSV to S3
+    const bucketName = 'your-s3-bucket-name';
+    const key = 'data.csv';  // or any desired path in the bucket
+
+    await s3.putObject({
+        Bucket: bucketName,
+        Key: key,
+        Body: fs.createReadStream(filePath),
+        ContentType: 'text/csv'
+    }).promise();
+
+    return {
+        statusCode: 200,
+        body: JSON.stringify({message: 'CSV written to S3 successfully!'}),
+    };
+};

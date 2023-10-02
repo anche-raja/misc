@@ -193,3 +193,28 @@ resource "aws_iam_role_policy_attachment" "attachment_to_container_agent_role" {
   role       = aws_iam_role.container_agent_role.name
   policy_arn = aws_iam_policy.rds_auth_policy.arn
 }
+
+resource "aws_appautoscaling_target" "ecs_target" {
+  service_namespace  = "ecs"
+  resource_id        = "service/${aws_ecs_cluster.container_cluster.name}/${aws_ecs_service.container_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  min_capacity       = 1
+  max_capacity       = 3
+}
+resource "aws_appautoscaling_policy" "ecs_policy" {
+  name               = "ecs-cpu-utilization-target"
+  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+
+    target_value       = 70  # Adjust this value if necessary; it means scaling will occur when average CPU utilization crosses 70%.
+    scale_in_cooldown  = 300 # 5 minutes cooldown to scale in
+    scale_out_cooldown = 300 # 5 minutes cooldown to scale out
+  }
+}
+

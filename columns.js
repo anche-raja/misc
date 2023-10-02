@@ -4,76 +4,50 @@ const fs = require('fs');
 const s3 = new AWS.S3();
 
 exports.handler = async (event) => {
-    const services = [
-        "Amazon Relational Database Service",
-        "Amazon Elastic Container Service",
-        "Amazon Elastic Container Registry",
-        "Amazon Elastic Compute Cloud",
-        "Amazon Simple Storage Service",
-        "AWS CodeDeploy",
-        "AWS CodeBuild",
-        "AWS CodeCommit",
-        "Amazon Virtual Private Cloud",
-        "IAM"
-    ];
 
     let combinedData = [];
 
-    for (let service of services) {
-        const params = {
-            TimePeriod: {
-                Start: "2023-09-20",
-                End: "2023-09-25"
-            },
-            Granularity: "DAILY",
-            Filter: {
-                Dimensions: {
-                    Key: "SERVICE",
-                    Values: [service],
-                }
-            },
-            GroupBy: [{
-                Type: "DIMENSION",
-                Key: "USAGE_TYPE"
-            }],
-            Metrics: ["BlendedCost", "UnblendedCost", "UsageQuantity"]
-        };
+    const params = {
+        TimePeriod: {
+            Start: "2023-09-20",
+            End: "2023-09-25"
+        },
+        Granularity: "DAILY",
+        GroupBy: [
+            { Type: "DIMENSION", Key: "SERVICE" },
+            { Type: "DIMENSION", Key: "USAGE_TYPE" }
+        ],
+        Metrics: ["BlendedCost", "UnblendedCost", "UsageQuantity"]
+    };
 
-        try {
-            const response = await costexplorer.getCostAndUsage(params).promise();
+    try {
+        const response = await costexplorer.getCostAndUsage(params).promise();
 
-            response.ResultsByTime.forEach(timePeriod => {
-                timePeriod.Groups.forEach(group => {
-                    combinedData.push({
-                        dateStart: timePeriod.TimePeriod.Start,
-                        dateEnd: timePeriod.TimePeriod.End,
-                        service: service,
-                        usageType: group.Keys[0],
-                        blendedCost: parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2),
-                        unblendedCost: parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2),
-                        usageQuantity: parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2),
-                        unit: group.Metrics.UsageQuantity.Unit
-                    });
+        response.ResultsByTime.forEach(timePeriod => {
+            timePeriod.Groups.forEach(group => {
+                combinedData.push({
+                    dateStart: timePeriod.TimePeriod.Start,
+                    dateEnd: timePeriod.TimePeriod.End,
+                    service: group.Keys[0],
+                    usageType: group.Keys[1],
+                    blendedCost: parseFloat(group.Metrics.BlendedCost.Amount).toFixed(2),
+                    unblendedCost: parseFloat(group.Metrics.UnblendedCost.Amount).toFixed(2),
+                    usageQuantity: parseFloat(group.Metrics.UsageQuantity.Amount).toFixed(2),
+                    unit: group.Metrics.UsageQuantity.Unit
                 });
             });
+        });
 
-        } catch (error) {
-            console.error(`Error fetching cost data for ${service}:`, error);
-            throw error;
-        }
+    } catch (error) {
+        console.error("Error fetching cost data:", error);
+        throw error;
     }
-
-    // Sort by date and service
-    combinedData.sort((a, b) => {
-        if (a.dateStart !== b.dateStart) return new Date(a.dateStart) - new Date(b.dateStart);
-        return a.service.localeCompare(b.service);
-    });
 
     const csvContent = writeToCSV(combinedData);
     const filePath = '/tmp/data.csv';
     fs.writeFileSync(filePath, csvContent);
 
-    const bucketName = 'q3-cc-db-remote-state';
+    const bucketName = 'q3-cc-db-remote-state';  // Modify this to your S3 bucket name
     const key = 'data.csv';
 
     await s3.putObject({

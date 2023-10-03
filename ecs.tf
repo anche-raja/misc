@@ -142,6 +142,11 @@ TASK_DEFINITION
     cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
+      tags = {
+      Environment = var.environment
+      Organization = var.org
+      Application = var.project
+    }
 }
 
 
@@ -150,7 +155,7 @@ resource "aws_ecs_service" "container_service" {
   name            = "container_service"
   cluster         = aws_ecs_cluster.container_cluster.id
   task_definition = aws_ecs_task_definition.container_task_definition.arn
-  desired_count   = 3
+  desired_count   = 1
   launch_type     = "FARGATE"
   deployment_controller {
     type = "CODE_DEPLOY"
@@ -170,30 +175,6 @@ resource "aws_ecs_service" "container_service" {
   }
 }
 
-//================================================================================ 
-resource "aws_iam_policy" "rds_auth_policy" {
-  name = "rds_auth_policy"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Action" : [
-          "rds-db:connect"
-        ],
-        "Resource" : [
-          "arn:aws:rds-db:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:dbuser:${module.aurora_rds_mysql.cluster_resource_id}/petclinic"
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "attachment_to_container_agent_role" {
-  role       = aws_iam_role.container_agent_role.name
-  policy_arn = aws_iam_policy.rds_auth_policy.arn
-}
-
 resource "aws_appautoscaling_target" "ecs_target" {
   service_namespace  = "ecs"
   resource_id        = "service/${aws_ecs_cluster.container_cluster.name}/${aws_ecs_service.container_service.name}"
@@ -201,22 +182,23 @@ resource "aws_appautoscaling_target" "ecs_target" {
   min_capacity       = 1
   max_capacity       = 3
 }
-resource "aws_appautoscaling_policy" "ecs_policy" {
-  name               = "ecs-cpu-utilization-target"
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+# resource "aws_appautoscaling_policy" "ecs_policy" {
+#   name               = "ecs-cpu-utilization-target"
+#   service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+#   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+#   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
 
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageCPUUtilization"
-    }
+#   target_tracking_scaling_policy_configuration {
+#     predefined_metric_specification {
+#       predefined_metric_type = "ECSServiceAverageCPUUtilization"
+#     }
 
-    target_value       = 70  # Adjust this value if necessary; it means scaling will occur when average CPU utilization crosses 70%.
-    scale_in_cooldown  = 300 # 5 minutes cooldown to scale in
-    scale_out_cooldown = 300 # 5 minutes cooldown to scale out
-  }
-}
+#     target_value       = 70  # Adjust this value if necessary; it means scaling will occur when average CPU utilization crosses 70%.
+#     scale_in_cooldown  = 300 # 5 minutes cooldown to scale in
+#     scale_out_cooldown = 300 # 5 minutes cooldown to scale out
+#   }
+# }
+
 resource "aws_appautoscaling_policy" "ecs_policy" {
   name               = "ecs-cpu-step-scaling"
   service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
@@ -252,4 +234,29 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
     ServiceName = aws_ecs_service.container_service.name
   }
 }
+//================================================================================ 
+resource "aws_iam_policy" "rds_auth_policy" {
+  name = "rds_auth_policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "rds-db:connect"
+        ],
+        "Resource" : [
+          "arn:aws:rds-db:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:dbuser:${module.aurora_rds_mysql.cluster_resource_id}/petclinic"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attachment_to_container_agent_role" {
+  role       = aws_iam_role.container_agent_role.name
+  policy_arn = aws_iam_policy.rds_auth_policy.arn
+}
+
+
 

@@ -1,0 +1,1 @@
+Error: updating ECS Service (arn:aws:ecs:us-east-1:100769305811:service/q3cc-app-container_cluster/container_service): InvalidParameterException: Unable to update load balancers on services with a CODE_DEPLOY deployment controller. Use AWS CodeDeploy to trigger a new deployment.

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Define the URL of your web app. Adjust this according to your environment.
+URL="http://your-web-app-url"
+
+# Make a curl request.
+response_code=$(curl -s -o /dev/null -w "%{http_code}" $URL)
+
+# Check the response. If it's not 200, then exit with error.
+if [ $response_code -ne 200 ]; then
+    echo "Test failed! Received response code $response_code"
+    exit 1  # This will fail the CodeBuild stage and thus stop the pipeline.
+else
+    echo "Test passed! Received response code $response_code"
+fi

@@ -259,4 +259,40 @@ resource "aws_iam_role_policy_attachment" "attachment_to_container_agent_role" {
 }
 
 
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name          = "ecs-cpu-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "30"  # Trigger when CPU utilization is below 30%.
+  alarm_description   = "This metric checks low CPU utilization"
+  alarm_actions       = [aws_appautoscaling_policy.ecs_policy_scale_in.arn] 
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.container_cluster.name
+    ServiceName = aws_ecs_service.container_service.name
+  }
+}
+
+resource "aws_appautoscaling_policy" "ecs_policy_scale_in" {
+  name               = "ecs-cpu-step-scaling-in"
+  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+  policy_type        = "StepScaling"
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 300  # 5 minutes cooldown before another scale in can occur.
+    metric_aggregation_type = "Average"
+    
+    step_adjustment {
+      scaling_adjustment          = -1  # Decreases the desired count by 1
+      metric_interval_upper_bound = 0
+    }
+  }
+}
 

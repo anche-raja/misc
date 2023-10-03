@@ -3,26 +3,49 @@ const costexplorer = new AWS.CostExplorer({ region: "us-east-1" }); // Cost Expl
 
 exports.handler = async (event) => {
 
-const  params ={
+const   params = {
   "TimePeriod": {
-    "Start":"2023-09-20",
+    "Start": "2023-09-20",
     "End": "2023-09-21"
   },
   "Granularity": "DAILY",
-  "Filter": {      
-    "Dimensions": {
-      "Key": "SERVICE",
-        "Values": ["Amazon Relational Database Service"],
-    }
+  "Filter": {
+    "And": [
+      {
+        "Tags": {
+          "Key": "Environment",
+          "Values": ["dev"]
+        }
+      },
+      {
+        "Tags": {
+          "Key": "Application",
+          "Values": ["petclinic"]
+        }
+      },
+      {
+        "Tags": {
+          "Key": "Org",
+          "Values": ["CC"]
+        }
+      },
+      {
+        "Dimensions": {
+          "Key": "SERVICE",
+          "Values": ["Amazon Relational Database Service"]
+        }
+      }
+    ]
   },
-  "GroupBy":[
+  "GroupBy": [
     {
-      "Type":"DIMENSION",
-      "Key":"USAGE_TYPE"
+      "Type": "DIMENSION",
+      "Key": "USAGE_TYPE"
     }
   ],
-   "Metrics":["BlendedCost", "UnblendedCost", "UsageQuantity"]
+  "Metrics": ["BlendedCost", "UnblendedCost", "UsageQuantity"]
 }
+
   try {
     const response = await costexplorer.getCostAndUsage(params).promise();
     console.log(response);

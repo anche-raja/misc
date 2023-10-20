@@ -1,31 +1,45 @@
-import json
-import gzip
-import boto3
-from io import BytesIO
+const AWS = require('aws-sdk');
+const zlib = require('zlib');
+const { Readable } = require('stream');
 
-s3 = boto3.client('s3')
+const s3 = new AWS.S3();
 
-def lambda_handler(event, context):
-    # Your data
-    data = {"key": "value"}
+exports.handler = async (event) => {
+    // Your data
+    const data = JSON.stringify({
+        key: 'value'
+    });
 
-    # Convert to JSON string
-    json_str = json.dumps(data)
+    // Convert to buffer
+    const buffer = Buffer.from(data, 'utf-8');
 
-    # Create a gzipped file in memory
-    gz_buffer = BytesIO()
-    with gzip.GzipFile(mode='w', fileobj=gz_buffer) as gz_file:
-        gz_file.write(json_str.encode('utf-8'))
+    // Gzip the buffer
+    const gzippedBuffer = zlib.gzipSync(buffer);
 
-    # Upload the gzipped file to S3
-    s3.put_object(
-        Bucket='your-bucket-name',
-        Key='your-key.gz',
-        Body=gz_buffer.getvalue(),
-        ContentType='application/gzip'
-    )
+    // Create a stream from the gzipped buffer
+    const stream = Readable.from(gzippedBuffer);
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps('File saved to S3 successfully!')
+    // Params for S3 upload
+    const uploadParams = {
+        Bucket: 'your-bucket-name',
+        Key: 'your-key.gz',
+        Body: stream,
+        ContentType: 'application/gzip'
+    };
+
+    try {
+        // Upload gzipped file to S3
+        const uploadResponse = await s3.upload(uploadParams).promise();
+        console.log(`File uploaded successfully at ${uploadResponse.Location}`);
+        return {
+            statusCode: 200,
+            body: JSON.stringify('File saved to S3 successfully!')
+        };
+    } catch (err) {
+        console.log(`An error occurred: ${err}`);
+        return {
+            statusCode: 500,
+            body: JSON.stringify('Failed to save file.')
+        };
     }
+};

@@ -1,0 +1,46 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - yum update -y
+      - yum install jq -y
+      - aws ecs describe-task-definition --task-definition container_service_task_family | jq '.taskDefinition' > taskdef.json
+      - envsubst < appspec-template.yaml > appspec.yaml
+  pre_build:
+    commands:
+      - pwd
+      - ls -ltr
+      - cd pet_clinic
+      - chmod 777 *
+      - ./mvnw package
+      - cd ..
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 100769305811.dkr.ecr.us-east-1.amazonaws.com
+      - REPOSITORY_URI=100769305811.dkr.ecr.us-east-1.amazonaws.com/container-repository
+      #- COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      #- IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+      - echo Build started on `date`
+      - pwd
+      - ls -ltr  pet_clinic/target/*.jar
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:latest
+      - echo Writing image definitions file...
+      - printf '[{"name":"cloud_challenge","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      
+artifacts:
+    files: 
+      - imagedefinitions.json
+      - appspec.yaml
+      - taskdef.json
+      - test.zip
+      - buildspec-test.yml

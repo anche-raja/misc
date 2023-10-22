@@ -7,6 +7,8 @@ resource "aws_ecs_cluster" "container_cluster" {
   name = join("-", [var.base_name, "container_cluster"])
 }
 
+#aws_lb.ecs_load_balancer.dns_name
+
 # this creates a load balancer for the ECS cluster
 resource "aws_lb" "ecs_load_balancer" {
   name               = "ecs-load-balancer"
@@ -17,15 +19,24 @@ resource "aws_lb" "ecs_load_balancer" {
   ]
   security_groups = [aws_security_group.allow_traffic_from_workspaces.id]
 }
+# resource "aws_acm_certificate" "ssl_cert" {
+#   domain_name       = aws_lb.ecs_load_balancer.dns_name
+#   validation_method = "DNS"
+#   lifecycle {
+#     create_before_destroy = true
+#   }
 
+# }
 # This is the load balancer listener
 resource "aws_lb_listener" "ecs_lb_listener_http_443" {
   load_balancer_arn = aws_lb.ecs_load_balancer.arn
-  port              = 443
+  port              = 80
   protocol          = "HTTP"
-   default_action {
+  # ssl_policy        = "ELBSecurityPolicy-2016-08"
+  # certificate_arn   = aws_acm_certificate.ssl_cert.arn
+  default_action {
     type             = "forward"
-    target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_blue.arn : aws_lb_target_group.ecs_target_group_green.arn
+    target_group_arn = aws_lb_target_group.ecs_target_group_blue.arn
   }
 
 }
@@ -33,11 +44,13 @@ resource "aws_lb_listener" "ecs_lb_listener_http_443" {
 # This is the load balancer listener
 resource "aws_lb_listener" "ecs_lb_listener_http_8443" {
   load_balancer_arn = aws_lb.ecs_load_balancer.arn
-  port              = 8443
+  port              = 8080
   protocol          = "HTTP"
-   default_action {
+  # ssl_policy        = "ELBSecurityPolicy-2016-08"
+  # certificate_arn   = aws_acm_certificate.ssl_cert.arn
+  default_action {
     type             = "forward"
-    target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_green.arn : aws_lb_target_group.ecs_target_group_blue.arn  
+    target_group_arn = aws_lb_target_group.ecs_target_group_green.arn
   }
 
 }
@@ -46,16 +59,17 @@ resource "aws_lb_listener" "ecs_lb_listener_http_8443" {
 # Create load balancer target group - blue
 resource "aws_lb_target_group" "ecs_target_group_blue" {
   name        = "ecs-lb-target-group-blue"
-  port        = 443
-  protocol    = "HTTP"
+  port        = 80
+  protocol    = "HTTPS"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
+
 }
 
 # Create load balancer target group - green
 resource "aws_lb_target_group" "ecs_target_group_green" {
   name        = "ecs-lb-target-group-green"
-  port        = 8443
+  port        = 8080
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
@@ -112,8 +126,8 @@ resource "aws_ecs_task_definition" "container_task_definition" {
       "portMappings": [
           {
               "name": "cloud-challenge-443-tcp",
-              "containerPort": 443,
-              "hostPort": 443,
+              "containerPort": 80,
+              "hostPort": 80,
               "protocol": "tcp",
               "appProtocol": "http"
           }
@@ -145,24 +159,24 @@ TASK_DEFINITION
     cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
-      tags = {
-      Environment = var.environment
-      Organization = var.org
-      Application = var.project
-    }
-    
+  tags = {
+    Environment  = var.environment
+    Organization = var.org
+    Application  = var.project
+  }
+
 }
 
 resource "aws_ecs_task_set" "container_taskset_blue" {
-  service = aws_ecs_service.container_service.id
+  service         = aws_ecs_service.container_service.id
   task_definition = aws_ecs_task_definition.container_task_definition.arn
-  cluster = aws_ecs_cluster.container_cluster.id
+  cluster         = aws_ecs_cluster.container_cluster.id
   launch_type     = "FARGATE"
   load_balancer {
-    container_name   = "cloud-challenge"
-    container_port   = 443
+    container_name = "cloud-challenge"
+    container_port = 80
     # target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_blue.arn : aws_lb_target_group.ecs_target_group_green.arn
-    target_group_arn =  aws_lb_target_group.ecs_target_group_blue.arn
+    target_group_arn = aws_lb_target_group.ecs_target_group_blue.arn
   }
   network_configuration {
     subnets = [
@@ -172,103 +186,101 @@ resource "aws_ecs_task_set" "container_taskset_blue" {
     security_groups  = [aws_security_group.allow_traffic_from_load_balancer.id]
     assign_public_ip = true
   }
-
-
 }
 #task_definition = aws_ecs_task_definition.container_task_definition.arn
 
 resource "aws_ecs_service" "container_service" {
-  depends_on      = [aws_nat_gateway.nat_gateway] # used to delay the creation of the ecs service until the image is available
-  name            = "container_service"
-  cluster         = aws_ecs_cluster.container_cluster.id
-  desired_count   = 1
-
+  depends_on    = [aws_nat_gateway.nat_gateway] # used to delay the creation of the ecs service until the image is available
+  name          = "container_service"
+  cluster       = aws_ecs_cluster.container_cluster.id
+  desired_count = 1
+  launch_type   = "FARGATE"
   deployment_controller {
     type = "EXTERNAL"
   }
 }
 
-resource "aws_appautoscaling_target" "ecs_target" {
-  service_namespace  = "ecs"
-  resource_id        = "service/${aws_ecs_cluster.container_cluster.name}/${aws_ecs_service.container_service.name}"
-  scalable_dimension = "ecs:service:DesiredCount"
-  min_capacity       = 1
-  max_capacity       = 3
-}
+# resource "aws_appautoscaling_target" "ecs_target" {
+#   service_namespace  = "ecs"
+#   resource_id        = "service/${aws_ecs_cluster.container_cluster.name}/${aws_ecs_service.container_service.name}"
+#   scalable_dimension = "ecs:service:DesiredCount"
+#   min_capacity       = 1
+#   max_capacity       = 3
+# }
 
 
-resource "aws_appautoscaling_policy" "ecs_policy" {
-  name               = "ecs-cpu-step-scaling"
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
-  policy_type        = "StepScaling"
+# resource "aws_appautoscaling_policy" "ecs_policy" {
+#   name               = "ecs-cpu-step-scaling"
+#   service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+#   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+#   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+#   policy_type        = "StepScaling"
 
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 300
-    metric_aggregation_type = "Average"
-    
-    step_adjustment {
-      scaling_adjustment          = 1
-      metric_interval_lower_bound = 0
-    }
-  }
-}
-resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = "ecs-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS"
-  period              = "30"  // One time in 30 Secs Average CPU utilization reaches 50%.
-  statistic           = "Average"
-  threshold           = "70"
-  alarm_description   = "This metric checks CPU utilization"
-  alarm_actions       = [aws_appautoscaling_policy.ecs_policy.arn] 
+#   step_scaling_policy_configuration {
+#     adjustment_type         = "ChangeInCapacity"
+#     cooldown                = 300
+#     metric_aggregation_type = "Average"
 
-  dimensions = {
-    ClusterName = aws_ecs_cluster.container_cluster.name
-    ServiceName = aws_ecs_service.container_service.name
-  }
-}
+#     step_adjustment {
+#       scaling_adjustment          = 1
+#       metric_interval_lower_bound = 0
+#     }
+#   }
+# }
+# resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+#   alarm_name          = "ecs-cpu-high"
+#   comparison_operator = "GreaterThanThreshold"
+#   evaluation_periods  = "2"
+#   metric_name         = "CPUUtilization"
+#   namespace           = "AWS/ECS"
+#   period              = "30"  // One time in 30 Secs Average CPU utilization reaches 50%.
+#   statistic           = "Average"
+#   threshold           = "70"
+#   alarm_description   = "This metric checks CPU utilization"
+#   alarm_actions       = [aws_appautoscaling_policy.ecs_policy.arn] 
 
-resource "aws_cloudwatch_metric_alarm" "cpu_low" {
-  alarm_name          = "ecs-cpu-low"
-  comparison_operator = "LessThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS"
-  period              = "30"
-  statistic           = "Average"
-  threshold           = "30"  # Trigger when CPU utilization is below 30%.
-  alarm_description   = "This metric checks low CPU utilization"
-  alarm_actions       = [aws_appautoscaling_policy.ecs_policy_scale_in.arn] 
+#   dimensions = {
+#     ClusterName = aws_ecs_cluster.container_cluster.name
+#     ServiceName = aws_ecs_service.container_service.name
+#   }
+# }
 
-  dimensions = {
-    ClusterName = aws_ecs_cluster.container_cluster.name
-    ServiceName = aws_ecs_service.container_service.name
-  }
-}
+# resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+#   alarm_name          = "ecs-cpu-low"
+#   comparison_operator = "LessThanThreshold"
+#   evaluation_periods  = "2"
+#   metric_name         = "CPUUtilization"
+#   namespace           = "AWS/ECS"
+#   period              = "30"
+#   statistic           = "Average"
+#   threshold           = "30"  # Trigger when CPU utilization is below 30%.
+#   alarm_description   = "This metric checks low CPU utilization"
+#   alarm_actions       = [aws_appautoscaling_policy.ecs_policy_scale_in.arn] 
 
-resource "aws_appautoscaling_policy" "ecs_policy_scale_in" {
-  name               = "ecs-cpu-step-scaling-in"
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
-  policy_type        = "StepScaling"
+#   dimensions = {
+#     ClusterName = aws_ecs_cluster.container_cluster.name
+#     ServiceName = aws_ecs_service.container_service.name
+#   }
+# }
 
-  step_scaling_policy_configuration {
-    adjustment_type         = "ChangeInCapacity"
-    cooldown                = 300  # 5 minutes cooldown before another scale in can occur.
-    metric_aggregation_type = "Average"
-    
-    step_adjustment {
-      scaling_adjustment          = -1  # Decreases the desired count by 1
-      metric_interval_upper_bound = 0
-    }
-  }
-}
+# resource "aws_appautoscaling_policy" "ecs_policy_scale_in" {
+#   name               = "ecs-cpu-step-scaling-in"
+#   service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+#   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+#   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+#   policy_type        = "StepScaling"
+
+#   step_scaling_policy_configuration {
+#     adjustment_type         = "ChangeInCapacity"
+#     cooldown                = 300  # 5 minutes cooldown before another scale in can occur.
+#     metric_aggregation_type = "Average"
+
+#     step_adjustment {
+#       scaling_adjustment          = -1  # Decreases the desired count by 1
+#       metric_interval_upper_bound = 0
+#     }
+#   }
+# }
 //================================================================================ 
 resource "aws_iam_policy" "rds_auth_policy" {
   name = "rds_auth_policy"

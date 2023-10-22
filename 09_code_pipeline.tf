@@ -106,21 +106,21 @@ resource "aws_codepipeline" "container_pipeline" {
       version = "1"
     }
   }
-  stage {
-    name = "Deploy"
-    action {
-      name            = "Petclinic-Deploy-Action"
-      category        = "Deploy"
-      owner           = "AWS"
-      provider        = "CodeDeploy"
-      input_artifacts = ["BuildOutput"]      
-      configuration = {
-        ApplicationName     = aws_codedeploy_app.codedeploy_container_application.name
-        DeploymentGroupName = aws_codedeploy_deployment_group.container_deployment_group.deployment_group_name
-      }
-      version = "1"
-    }
-  }
+  # stage {
+  #   name = "Deploy"
+  #   action {
+  #     name            = "Petclinic-Deploy-Action"
+  #     category        = "Deploy"
+  #     owner           = "AWS"
+  #     provider        = "CodeDeploy"
+  #     input_artifacts = ["BuildOutput"]      
+  #     configuration = {
+  #       ApplicationName     = aws_codedeploy_app.codedeploy_container_application.name
+  #       DeploymentGroupName = aws_codedeploy_deployment_group.container_deployment_group.deployment_group_name
+  #     }
+  #     version = "1"
+  #   }
+  # }
 
   // Added new Test Stage for Test automation 
   stage {

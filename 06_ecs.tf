@@ -18,10 +18,35 @@ resource "aws_lb" "ecs_load_balancer" {
   security_groups = [aws_security_group.allow_traffic_from_workspaces.id]
 }
 
+# This is the load balancer listener
+resource "aws_lb_listener" "ecs_lb_listener_http_443" {
+  load_balancer_arn = aws_lb.ecs_load_balancer.arn
+  port              = 443
+  protocol          = "HTTP"
+   default_action {
+    type             = "forward"
+    target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_blue.arn : aws_lb_target_group.ecs_target_group_green.arn
+  }
+
+}
+
+# This is the load balancer listener
+resource "aws_lb_listener" "ecs_lb_listener_http_8443" {
+  load_balancer_arn = aws_lb.ecs_load_balancer.arn
+  port              = 8443
+  protocol          = "HTTP"
+   default_action {
+    type             = "forward"
+    target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_green.arn : aws_lb_target_group.ecs_target_group_blue.arn  
+  }
+
+}
+
+
 # Create load balancer target group - blue
 resource "aws_lb_target_group" "ecs_target_group_blue" {
   name        = "ecs-lb-target-group-blue"
-  port        = 80
+  port        = 443
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
@@ -30,32 +55,10 @@ resource "aws_lb_target_group" "ecs_target_group_blue" {
 # Create load balancer target group - green
 resource "aws_lb_target_group" "ecs_target_group_green" {
   name        = "ecs-lb-target-group-green"
-  port        = 8080
+  port        = 8443
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
-}
-
-# This is the load balancer listener
-resource "aws_lb_listener" "ecs_lb_listener_http_80" {
-  load_balancer_arn = aws_lb.ecs_load_balancer.arn
-  port              = 80
-  protocol          = "HTTP"
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ecs_target_group_blue.arn
-  }
-}
-
-# This is the load balancer listener
-resource "aws_lb_listener" "ecs_lb_listener_http_8080" {
-  load_balancer_arn = aws_lb.ecs_load_balancer.arn
-  port              = 8080
-  protocol          = "HTTP"
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ecs_target_group_green.arn
-  }
 }
 
 # This is where we create the role to be used by the container agent to deploy containers
@@ -99,18 +102,18 @@ resource "aws_iam_role" "container_agent_role" {
 #  This is where we create the task definition for the containers to run in ECS
 resource "aws_ecs_task_definition" "container_task_definition" {
   family                   = "container_service_task_family"
-  cpu                      = 1024
-  memory                   = 4096
+  cpu                      = 256
+  memory                   = 512
   container_definitions    = <<TASK_DEFINITION
 [
   {
       "name": "cloud-challenge",
-      "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/container-repository:latest",
+      "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/container-repository:${var.image_tag}",
       "portMappings": [
           {
-              "name": "cloud-challenge-80-tcp",
-              "containerPort": 80,
-              "hostPort": 80,
+              "name": "cloud-challenge-443-tcp",
+              "containerPort": 443,
+              "hostPort": 443,
               "protocol": "tcp",
               "appProtocol": "http"
           }
@@ -149,16 +152,16 @@ TASK_DEFINITION
     }
 }
 
+#task_definition = aws_ecs_task_definition.container_task_definition.arn
 
 resource "aws_ecs_service" "container_service" {
   depends_on      = [aws_nat_gateway.nat_gateway] # used to delay the creation of the ecs service until the image is available
   name            = "container_service"
   cluster         = aws_ecs_cluster.container_cluster.id
-  task_definition = aws_ecs_task_definition.container_task_definition.arn
   desired_count   = 1
   launch_type     = "FARGATE"
   deployment_controller {
-    type = "CODE_DEPLOY"
+    type = "EXTERNAL"
   }
   network_configuration {
     subnets = [
@@ -170,8 +173,9 @@ resource "aws_ecs_service" "container_service" {
   }
   load_balancer {
     container_name   = "cloud-challenge"
-    container_port   = 80
-    target_group_arn = aws_lb_target_group.ecs_target_group_blue.arn
+    container_port   = 443
+    target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_blue.arn : aws_lb_target_group.ecs_target_group_green.arn
+
   }
 }
 

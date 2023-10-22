@@ -8,7 +8,9 @@ module "aurora_rds_mysql" {
 
   master_username             = "root"
   manage_master_user_password = true
+
   iam_database_authentication_enabled = true
+  
   performance_insights_enabled = true
 
   instances = {

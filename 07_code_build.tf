@@ -153,6 +153,3 @@ resource "aws_codebuild_project" "container_pipeline_codebuild_project_test" {
 #   project_visibility = "PRIVATE"
 
 # }
-
-
-

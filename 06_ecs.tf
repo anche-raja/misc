@@ -150,18 +150,19 @@ TASK_DEFINITION
       Organization = var.org
       Application = var.project
     }
+    
 }
 
-#task_definition = aws_ecs_task_definition.container_task_definition.arn
-
-resource "aws_ecs_service" "container_service" {
-  depends_on      = [aws_nat_gateway.nat_gateway] # used to delay the creation of the ecs service until the image is available
-  name            = "container_service"
-  cluster         = aws_ecs_cluster.container_cluster.id
-  desired_count   = 1
+resource "aws_ecs_task_set" "container_taskset_blue" {
+  service = aws_ecs_service.container_service.id
+  task_definition = aws_ecs_task_definition.container_task_definition.arn
+  cluster = aws_ecs_cluster.container_cluster.id
   launch_type     = "FARGATE"
-  deployment_controller {
-    type = "EXTERNAL"
+  load_balancer {
+    container_name   = "cloud-challenge"
+    container_port   = 443
+    # target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_blue.arn : aws_lb_target_group.ecs_target_group_green.arn
+    target_group_arn =  aws_lb_target_group.ecs_target_group_blue.arn
   }
   network_configuration {
     subnets = [
@@ -171,11 +172,19 @@ resource "aws_ecs_service" "container_service" {
     security_groups  = [aws_security_group.allow_traffic_from_load_balancer.id]
     assign_public_ip = true
   }
-  load_balancer {
-    container_name   = "cloud-challenge"
-    container_port   = 443
-    target_group_arn = var.active_target_group == "blue" ? aws_lb_target_group.ecs_target_group_blue.arn : aws_lb_target_group.ecs_target_group_green.arn
 
+
+}
+#task_definition = aws_ecs_task_definition.container_task_definition.arn
+
+resource "aws_ecs_service" "container_service" {
+  depends_on      = [aws_nat_gateway.nat_gateway] # used to delay the creation of the ecs service until the image is available
+  name            = "container_service"
+  cluster         = aws_ecs_cluster.container_cluster.id
+  desired_count   = 1
+
+  deployment_controller {
+    type = "EXTERNAL"
   }
 }
 

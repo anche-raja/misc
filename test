@@ -1,3 +1,123 @@
 aws ecs describe-services --cluster [Cluster_Name] --services [Service_Name]
 aws ecs list-tasks --cluster [Cluster_Name] --desired-status STOPPED
 aws ecs describe-tasks --cluster [Cluster_Name] --tasks [Stopped_Task_Arns]
+$ aws ecs describe-services --cluster "q3cc-app-container_cluster" --services "container_servi
+ce"
+{
+    "services": [
+        {
+            "serviceArn": "arn:aws:ecs:us-east-1:100769305811:service/q3cc-app-container_clust
+er/container_service",
+            "serviceName": "container_service",
+            "clusterArn": "arn:aws:ecs:us-east-1:100769305811:cluster/q3cc-app-container_clust
+er",
+            "loadBalancers": [],
+            "serviceRegistries": [],
+            "status": "ACTIVE",
+            "desiredCount": 2,
+            "runningCount": 0,
+            "pendingCount": 0,
+            "launchType": "EC2",
+            "deploymentConfiguration": {
+                "maximumPercent": 200,
+                "minimumHealthyPercent": 100
+            },
+            "taskSets": [
+                {
+                    "id": "ecs-svc/9248498737022797182",
+                    "taskSetArn": "arn:aws:ecs:us-east-1:100769305811:task-set/q3cc-app-contai
+ner_cluster/container_service/ecs-svc/9248498737022797182",
+                    "serviceArn": "arn:aws:ecs:us-east-1:100769305811:service/container_servic
+e",
+                    "clusterArn": "arn:aws:ecs:us-east-1:100769305811:cluster/q3cc-app-contain
+er_cluster",
+                    "status": "ACTIVE",
+                    "taskDefinition": "arn:aws:ecs:us-east-1:100769305811:task-definition/cont
+ainer_service_task_family:31",
+                    "computedDesiredCount": 0,
+                    "pendingCount": 0,
+                    "runningCount": 0,
+                    "createdAt": "2023-10-22T19:29:11.759000-05:00",
+                    "updatedAt": "2023-10-22T19:29:19.720000-05:00",
+                    "launchType": "FARGATE",
+                    "platformVersion": "1.4.0",
+                    "platformFamily": "Linux",
+                    "networkConfiguration": {
+                        "awsvpcConfiguration": {
+                            "subnets": [
+                                "subnet-06ffa38f9410717fc",
+                                "subnet-08914fa0a33783039"
+                            ],
+                            "securityGroups": [
+                                "sg-0853417e91b90eff7"
+                            ],
+                            "assignPublicIp": "ENABLED"
+                        }
+                    },
+                    "loadBalancers": [
+                        {
+                            "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:10076930
+5811:targetgroup/ecs-lb-target-group-blue/5e475957aab3264a",
+                            "containerName": "cloud-challenge",
+                            "containerPort": 80
+                        }
+                    ],
+                    "serviceRegistries": [],
+                    "scale": {
+                        "value": 0.0,
+                        "unit": "PERCENT"
+                    },
+                    "stabilityStatus": "STEADY_STATE",
+                    "stabilityStatusAt": "2023-10-22T19:29:19.720000-05:00",
+                    "tags": []
+                }
+            ],
+            "deployments": [],
+            "roleArn": "arn:aws:iam::100769305811:role/aws-service-role/ecs.amazonaws.com/AWSS
+erviceRoleForECS",
+            "events": [
+                {
+                    "id": "bc84847c-9fce-4887-98f8-8303348fa96b",
+                    "createdAt": "2023-10-22T19:29:19.731000-05:00",
+                    "message": "(service container_service) has reached a steady state."
+                },
+                {
+                    "id": "84f8b4ba-06c5-4761-afd6-e0a41b5a0568",
+                    "createdAt": "2023-10-22T19:29:19.730000-05:00",
+                    "message": "(service container_service, taskSet ecs-svc/924849873702279718
+2) updated state to STEADY_STATE."
+                },
+                {
+                    "id": "ea5b995f-4b70-4c81-b434-fa6a791c0e2e",
+                    "createdAt": "2023-10-22T19:29:09.983000-05:00",
+                    "message": "(service container_service, taskSet ecs-svc/498602862996894277
+2) updated state to STEADY_STATE."
+                },
+                {
+                    "id": "368a097d-948a-4fb6-a6c8-e60ac4627f1e",
+                    "createdAt": "2023-10-22T17:58:28.713000-05:00",
+                    "message": "(service container_service) has reached a steady state."
+                },
+                {
+                    "id": "c6f14e95-2331-43d5-a165-d3aca3a7ce20",
+                    "createdAt": "2023-10-22T17:58:28.712000-05:00",
+                    "message": "(service container_service, taskSet ecs-svc/498602862996894277
+2) updated state to STEADY_STATE."
+                }
+            ],
+            "createdAt": "2023-10-22T17:58:27.009000-05:00",
+            "placementConstraints": [],
+            "placementStrategy": [],
+            "schedulingStrategy": "REPLICA",
+            "deploymentController": {
+                "type": "EXTERNAL"
+            },
+            "createdBy": "arn:aws:iam::100769305811:role/aws-reserved/sso.amazonaws.com/AWSRes
+ervedSSO_AWSAdministratorAccess_4785148a6ead4c7e",
+            "enableECSManagedTags": false,
+            "propagateTags": "NONE",
+            "enableExecuteCommand": false
+        }
+    ],
+    "failures": []
+}

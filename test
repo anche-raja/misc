@@ -1,0 +1,3 @@
+aws ecs describe-services --cluster [Cluster_Name] --services [Service_Name]
+aws ecs list-tasks --cluster [Cluster_Name] --desired-status STOPPED
+aws ecs describe-tasks --cluster [Cluster_Name] --tasks [Stopped_Task_Arns]

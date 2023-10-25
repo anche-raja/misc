@@ -1,3 +1,5 @@
+spring.datasource.url=jdbc:mysql://q3cc-app-db.cluster-ckjlcsqy8tdn.us-east-1.rds.amazonaws.com/petclinic?useSSL=true&requireSSL=true&clientCertificateKeyStoreUrl=file:/cert.jks&lientCertificateKeyStorePassword=temp123
+
 my_secret=$(aws secretsmanager get-secret-value --secret-id "my-jks-secret" --query SecretString --output text)
 echo "$my_secret" | base64 --decode > /path/to/decoded.jks
 spring.datasource.url=jdbc:mysql://your-rds-instance:3306/yourdb?useSSL=true&requireSSL=true&verifyServerCertificate=true&trustCertificateKeyStoreUrl=file:/path/to/us-east-1-bundle.jks&trustCertificateKeyStorePassword=your-password

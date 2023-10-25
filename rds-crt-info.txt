@@ -1,3 +1,7 @@
+my_secret=$(aws secretsmanager get-secret-value --secret-id "my-jks-secret" --query SecretString --output text)
+echo "$my_secret" | base64 --decode > /path/to/decoded.jks
+
+
 convert the .pem to jks file
 openssl pkcs12 -export -in us-east-1-bundle.pem -out us-east-1-bundle.p12 -name "us1-rds"
 

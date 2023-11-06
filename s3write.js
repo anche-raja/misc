@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
-const crypto = require('crypto');
 const fs = require('fs');
 const zlib = require('zlib');
 const { promisify } = require('util');
 const stream = require('stream');
+const md5 = require('md5');
 
 const pipeline = promisify(stream.pipeline);
 
@@ -22,10 +22,10 @@ async function createGzipFile(content, filePath) {
 // Function to calculate MD5 hash of the file
 function calculateMD5(filePath) {
   return new Promise((resolve, reject) => {
-    const hash = crypto.createHash('md5');
     const stream = fs.createReadStream(filePath);
-    stream.on('data', data => hash.update(data));
-    stream.on('end', () => resolve(hash.digest('hex')));
+    const hashChunks = [];
+    stream.on('data', data => hashChunks.push(data));
+    stream.on('end', () => resolve(md5(Buffer.concat(hashChunks))));
     stream.on('error', reject);
   });
 }

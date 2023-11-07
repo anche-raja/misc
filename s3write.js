@@ -1,38 +1,58 @@
 const AWS = require('aws-sdk');
-const s3 = new AWS.S3();
 const fs = require('fs');
 const crypto = require('crypto');
+const zlib = require('zlib');
 
-// Calculate MD5 of gzipped content
-function calculateMD5(buffer) {
-  return crypto.createHash('md5').update(buffer).digest('hex');
+// Initialize the S3 client
+const s3 = new AWS.S3();
+
+// Function to gzip file content and calculate MD5
+function gzipFileSync(inputFilePath) {
+  // Read file synchronously
+  const fileContent = fs.readFileSync(inputFilePath);
+
+  // Gzip file content synchronously
+  const gzippedContent = zlib.gzipSync(fileContent);
+
+  // Calculate MD5 hash of gzipped content
+  const hash = crypto.createHash('md5').update(gzippedContent).digest('hex');
+
+  // Return gzipped content and its MD5 hash
+  return { gzippedContent, hash };
 }
 
-// Upload the gzipped file to S3 and compare ETag
-async function uploadAndVerify(localGzipFilePath, bucketName, key) {
-  const gzippedContent = fs.readFileSync(localGzipFilePath);
-  const md5Checksum = calculateMD5(gzippedContent);
-  
-  const uploadParams = {
+// Function to upload gzipped file to S3
+function uploadGzipToS3(bucketName, key, gzippedContent, md5Hash) {
+  // Convert the MD5 hash to base64
+  const base64md5 = Buffer.from(md5Hash, 'hex').toString('base64');
+
+  // Set the parameters for the S3 upload
+  const params = {
     Bucket: bucketName,
     Key: key,
     Body: gzippedContent,
-    ContentMD5: Buffer.from(md5Checksum, 'hex').toString('base64'),
+    ContentMD5: base64md5,
   };
 
-  try {
-    const uploadResponse = await s3.upload(uploadParams).promise();
-    const s3ETag = uploadResponse.ETag.replace(/"/g, '');
-
-    if (s3ETag === md5Checksum) {
-      console.log('Success! ETag matches MD5 checksum.');
+  // Upload the gzipped file to S3
+  s3.upload(params, function(err, data) {
+    if (err) {
+      console.error('Error uploading to S3:', err);
     } else {
-      console.log('Mismatch: ETag does not match MD5 checksum.');
+      console.log('Successfully uploaded to S3:', data);
     }
-  } catch (error) {
-    console.error('An error occurred:', error);
-  }
+  });
 }
 
-// Call the uploadAndVerify function with your details
-uploadAndVerify('path/to/your/file.gz', 'your-bucket-name', 'your-object-key');
+// Local file path
+const inputFilePath = 'path/to/your/original/file';
+
+// S3 details
+const bucketName = 'your-bucket-name';
+const key = 'your-object-key.gz';
+
+// Gzip the file content and calculate MD5
+const { gzippedContent, hash } = gzipFileSync(inputFilePath);
+
+// Upload the gzipped file to S3
+uploadGzipToS3(bucketName, key, gzippedContent, hash);

@@ -56,3 +56,46 @@ const { gzippedContent, hash } = gzipFileSync(inputFilePath);
 
 // Upload the gzipped file to S3
 uploadGzipToS3(bucketName, key, gzippedContent, hash);
+
+
+
+
+
+
+
+
+
+
+const fs = require('fs');
+const zlib = require('zlib');
+const crypto = require('crypto');
+
+// Function to gzip a string and write it to a file synchronously
+function gzipStringToFile(content, outputFilePath) {
+  // Convert string to buffer
+  const buffer = Buffer.from(content, 'utf-8');
+
+  // Gzip the content
+  const gzippedContent = zlib.gzipSync(buffer);
+
+  // Write gzipped content to file
+  fs.writeFileSync(outputFilePath, gzippedContent);
+
+  // Calculate MD5 hash of gzipped content
+  const hash = crypto.createHash('md5').update(gzippedContent).digest('hex');
+
+  return hash;
+}
+
+// Your string content
+const content = "The content to be gzipped";
+
+// The output file path
+const outputFilePath = "path/to/output/file.gz";
+
+// Gzip the content and get the MD5 hash
+const md5Hash = gzipStringToFile(content, outputFilePath);
+
+// Log the MD5 hash
+console.log("MD5 Hash:", md5Hash);
+

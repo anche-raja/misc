@@ -172,3 +172,21 @@ const { gzippedContent, hash } = gzipAndHashContent(contentToGzip);
 // Upload the gzipped content to S3
 uploadGzipToS3(bucketName, key, gzippedContent, hash);
 
+
+
+// Function to calculate MD5 hash from a stream
+const calculateMD5FromStream = (stream) => {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('md5');
+    stream.on('data', (data) => {
+      hash.update(data);
+    });
+    stream.on('end', () => {
+      resolve(hash.digest('hex'));
+    });
+    stream.on('error', (error) => {
+      reject(error);
+    });
+  });
+};
+

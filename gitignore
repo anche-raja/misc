@@ -1,0 +1,37 @@
+# Ignore directory created by terraform init
+**/.terraform/*
+
+# Ignore Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Ignore plan output files
+*.tfplan
+*.tfout
+
+# Ignore any override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore editor backup files
+*.bak
+*.swp
+*.swo
+
+# Ignore logs
+crash.log
+*.log
+
+# Ignore local env files
+.env
+.env.*

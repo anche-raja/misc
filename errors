@@ -1,1 +1,29 @@
-Error: updating ECS Service (arn:aws:ecs:us-east-1:100769305811:service/q3cc-app-container_cluster/container_service): InvalidParameterException: Unable to update load balancers on services with a CODE_DEPLOY deployment controller. Use AWS CodeDeploy to trigger a new deployment.
+Initializing modules...
+2023-11-14T18:26:00.026-0600 [DEBUG] Module installer: begin dev_netwoeking
+2023-11-14T18:26:00.069-0600 [DEBUG] Module installer: dev_netwoeking installed at
+- dev_netwoeking in
+╷
+│ Error: Unreadable module directory
+│
+│ Unable to evaluate directory symlink: CreateFile ..\..\..\modules: The system cannot find the
+│ file specified.
+╵
+
+╷
+│ Error: Failed to read module directory
+│
+│ Module directory  does not exist or cannot be read.
+╵
+
+╷
+│ Error: Unreadable module directory
+│
+│ Unable to evaluate directory symlink: CreateFile ..\..\..\modules: The system cannot find the
+│ file specified.
+╵
+
+╷
+│ Error: Failed to read module directory
+│
+│ Module directory  does not exist or cannot be read.
+╵

@@ -1,4 +1,5 @@
-const AWS = require('aws-sdk');
+
+const AWS = require('aws-sdk');x
 const fs = require('fs');
 const crypto = require('crypto');
 const zlib = require('zlib');
@@ -190,3 +191,35 @@ const calculateMD5FromStream = (stream) => {
   });
 };
 
+
+
+const AWS = require('aws-sdk');
+
+exports.handler = async (event) => {
+    // Assuming 'event' contains the 'certificate' data
+    const devicesArray = event.certificate;
+
+    const transformedArray = devicesArray.map(item => {
+        let caStorageNewValue = '';
+
+        // Extracting the number from caStroage and creating the new value
+        const match = item.caStroage.match(/p(\d+)/);
+        if (match && match[1]) {
+            caStorageNewValue = `CC${match[1]}`;
+        }
+
+        return {
+            caStartdate: item.caStartdate,
+            caEnddate: item.caEnddate,
+            caStroage: caStorageNewValue
+        };
+    });
+
+    console.log(transformedArray);
+
+    // The return value can be used as the response in case of an API Gateway trigger, for example
+    return {
+        statusCode: 200,
+        body: JSON.stringify(transformedArray)
+    };
+};

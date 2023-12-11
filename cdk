@@ -1,0 +1,47 @@
+import * as lambda from '@aws-cdk/aws-lambda';
+import * as logs from '@aws-cdk/aws-logs';
+import * as cdk from '@aws-cdk/core';
+
+class MyCoreConstruct extends cdk.Construct {
+  constructor(scope: cdk.Construct, id: string) {
+    super(scope, id);
+
+    // Define the Lambda function
+    const myLambdaFunction = new lambda.Function(this, 'MyFunction', {
+      // ... your Lambda configuration
+    });
+
+    // Define the LogGroup
+    const logGroup = new logs.LogGroup(this, 'MyLogGroup', {
+      // ... your LogGroup configuration
+    });
+
+    // Add permission for CloudWatch Logs to invoke the Lambda function
+    const permission = myLambdaFunction.addPermission('CloudWatchLogsPermission', {
+      // ... your permission configuration
+    });
+
+    // Define the subscription filter
+    const subscriptionFilter = new logs.SubscriptionFilter(this, 'MySubscriptionFilter', {
+      logGroup: logGroup,
+      destination: myLambdaFunction,
+      // ... your subscription filter configuration
+    });
+
+    // Explicitly add a dependency in CDK v1
+    // The reference to the underlying CloudFormation resource might differ
+    const cfnSubscriptionFilter = subscriptionFilter.node.findChild('Resource') as logs.CfnSubscriptionFilter;
+    cfnSubscriptionFilter.addDependsOn(permission.node.findChild('Resource') as cdk.CfnResource);
+  }
+}
+
+// Use MyCoreConstruct in your stack
+export class MyStack extends cdk.Stack {
+  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+    new MyCoreConstruct(this, 'MyCoreConstruct');
+  }
+}
+
+const app = new cdk.App();
+new MyStack(app, 'MyStack');

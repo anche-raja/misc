@@ -1,0 +1,41 @@
+stages:
+  - cleanup
+
+cleanup_after_merge:
+  stage: cleanup
+  script:
+    - echo "Merge occurred. Cleaning up the feature branch resources."
+    - echo "Feature branch name: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+  only:
+    refs:
+      - master
+    variables:
+      - $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+
+
+
+
+
+
+stages:
+  - create
+  - delete
+
+create_stack:
+  stage: create
+  script:
+    - echo "Deploying AWS stack for the feature branch"
+    - deploy_stack_script.sh
+  only:
+    - branches
+  except:
+    - master
+
+delete_stack:
+  stage: delete
+  script:
+    - echo "Deleting AWS stack for the feature branch"
+    - delete_stack_script.sh
+  only:
+    - master
+

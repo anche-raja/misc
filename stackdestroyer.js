@@ -147,3 +147,60 @@ Update necessary stacks to avoid deletion.
 Remove any stacks that are no longer needed.
 Support
 For assistance or to exclude specific stacks from this process, please contact the cloud operations team at cloud-ops@example.com.
+
+
+
+
+  Title: Automated Deletion of Stale AWS CloudFormation Stacks
+Introduction
+Briefly explain the purpose of the automation.
+Highlight the importance of keeping the AWS environment clean and cost-effective by removing outdated resources.
+Overview
+Describe the components involved in the automation:
+AWS CloudFormation Stacks
+AWS CDK (Cloud Development Kit)
+AWS Lambda
+Amazon DynamoDB
+Amazon SNS (Simple Notification Service)
+Amazon EventBridge
+Objectives
+Outline the main goals of the automation:
+To identify CloudFormation stacks that haven't been updated for two weeks.
+To notify stakeholders of these stale stacks using Amazon SNS.
+To automatically delete stacks if they remain unupdated a day after the notification.
+Prerequisites
+List any prerequisites needed to understand or implement the solution:
+Basic knowledge of AWS services (CloudFormation, Lambda, SNS, DynamoDB, EventBridge).
+Access permissions to create and manage the above AWS resources.
+Familiarity with AWS CDK for infrastructure as code deployment.
+Architecture Diagram
+Include a simple diagram illustrating the interaction between the components:
+DynamoDB storing stack names and update timestamps.
+Lambda function querying DynamoDB and sending notifications through SNS.
+EventBridge triggering the Lambda function on a scheduled basis.
+Implementation Steps
+Step 1: Setting Up the Infrastructure
+DynamoDB Table: Describe how to create the table with the required schema.
+SNS Topic: Instructions for creating the SNS topic and subscribing team members.
+Lambda Function: Guide on developing the Lambda function with the specified logic.
+EventBridge Rule: Explain how to set up the daily trigger for the Lambda function.
+Step 2: Lambda Function Logic
+Detail the logic within the Lambda function for querying DynamoDB, sending SNS notifications, and deleting stale stacks.
+Step 3: Deployment
+Provide steps to deploy the solution using AWS CDK, including any necessary commands.
+Testing and Verification
+Outline steps to test the automation to ensure it functions as expected:
+Simulate stale stacks in DynamoDB.
+Verify SNS notifications are sent out.
+Check that stale stacks are deleted as per the logic.
+Maintenance and Troubleshooting
+Offer guidance on maintaining the system, including monitoring Lambda logs and DynamoDB.
+Suggest common troubleshooting steps for potential issues.
+FAQ
+Include a section for frequently asked questions to address common concerns and clarifications.
+Conclusion
+Summarize the importance of the automation and encourage the team to provide feedback for continuous improvement.
+Additional Resources
+Provide links to relevant AWS documentation and tutorials for a deeper understanding of the services used.
+Contact
+List the contact information of the team members or individuals responsible for the automation for further questions or support.

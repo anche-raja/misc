@@ -1,3 +1,13 @@
+aws sts assume-role-with-saml \
+    --role-arn "arn:aws:iam::AWS_ACCOUNT_ID:role/ROLE_NAME" \
+    --principal-arn "PRINCIPAL_ARN_FOR_SELECTED_ROLE" \
+    --saml-assertion "$SAML_ASSERTION_BASE64_ENCODED" \
+    --duration-seconds 3600
+
+
+
+
+
 # Assuming you have the SAML assertion and the ARNs for the provider and role
 SAML_ASSERTION=$(echo "BASE64_ENCODED_SAML_ASSERTION" | base64 -d)
 

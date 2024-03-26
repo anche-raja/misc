@@ -1,3 +1,44 @@
+const AWS = require('aws-sdk');
+
+exports.handler = async (event) => {
+    const cloudformation = new AWS.CloudFormation();
+    const dynamodb = new AWS.DynamoDB();
+    
+    // Retrieve stack names from DynamoDB
+    const params = {
+        TableName: 'YourDynamoDBTableName'
+    };
+    const data = await dynamodb.scan(params).promise();
+    const stackNames = data.Items.map(item => item.stackName.S);
+    
+    // Get list of stacks from CloudFormation
+    const paramsCloudFormation = {};
+    const stacks = await cloudformation.listStacks(paramsCloudFormation).promise();
+    
+    // Filter stacks by names from DynamoDB and check last updated time
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const filteredStacks = stacks.StackSummaries.filter(stack => {
+        const stackName = stack.StackName;
+        const lastUpdated = stack.LastUpdatedTime || stack.CreationTime;
+        return stackNames.includes(stackName) && new Date(lastUpdated) < thirtyDaysAgo;
+    });
+    
+    // Log filtered stacks
+    console.log('Stacks not updated in the last 30 days:');
+    filteredStacks.forEach(stack => console.log(stack.StackName));
+    
+    // Optionally, you can perform further actions with the filtered stacks, such as sending notifications or taking remedial actions
+    
+    return {
+        statusCode: 200,
+        body: JSON.stringify('Stacks checked successfully'),
+    };
+};
+
+
+
+
 import * as sns from '@aws-cdk/aws-sns';
 import * as subscriptions from '@aws-cdk/aws-sns-subscriptions';
 

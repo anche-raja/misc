@@ -1,3 +1,43 @@
+const { CloudFormationClient, ListStacksCommand } = require("@aws-sdk/client-cloudformation");
+
+// Set the AWS Region
+const REGION = "your-region"; // e.g., 'us-east-1'
+
+// Create an instance of the CloudFormation client
+const cloudFormationClient = new CloudFormationClient({ region: REGION });
+
+// Define the current date and 30 days ago
+const currentDate = new Date();
+const thirtyDaysAgo = new Date();
+thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+// Define the parameters for the listStacks operation
+const params = {};
+
+// Call the listStacks operation
+const listStacksCommand = new ListStacksCommand(params);
+
+// Execute the listStacks operation
+cloudFormationClient.send(listStacksCommand)
+  .then(data => {
+    // Filter stacks based on LastUpdatedTime
+    const filteredStacks = data.StackSummaries.filter(stack => {
+      const lastUpdatedTime = new Date(stack.LastUpdatedTime);
+      return lastUpdatedTime <= currentDate && lastUpdatedTime >= thirtyDaysAgo;
+    });
+
+    // Log filtered stacks
+    console.log("Stacks updated 30 days ago:");
+    filteredStacks.forEach(stack => console.log(stack.StackName));
+  })
+  .catch(error => {
+    // Handle errors
+    console.error("Error:", error);
+  });
+
+
+============================
+
 const AWS = require('aws-sdk');
 
 exports.handler = async (event) => {

@@ -1,3 +1,46 @@
+// Array of names
+const names = ['John', 'Jane', 'Alice', 'Bob'];
+
+// Function to generate HTML table from array of names
+const generateHtmlTable = (names) => {
+  let html = '<table border="1">';
+  html += '<tr><th>Name</th></tr>';
+  names.forEach(name => {
+    html += `<tr><td>${name}</td></tr>`;
+  });
+  html += '</table>';
+  return html;
+};
+
+// Call the function to generate HTML table
+const htmlTable = generateHtmlTable(names);
+
+// Example email body
+const emailBody = `
+<html>
+<head>
+  <style>
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <p>List of Names:</p>
+  ${htmlTable}
+</body>
+</html>
+`;
+
+console.log(emailBody); // Print the email body to console
+
+
+
+
 const { CloudFormationClient, ListStacksCommand } = require("@aws-sdk/client-cloudformation");
 
 // Set the AWS Region

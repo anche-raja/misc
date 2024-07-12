@@ -1,0 +1,68 @@
+Detailed Architecture Components
+ECS Deployment:
+
+ECS clusters deployed across multiple Availability Zones (AZs) in both East (active) and West (passive) regions.
+ECS EC2 instances running your Spring web application.
+RDS Oracle Deployment:
+
+Multi-AZ deployment for RDS in both regions.
+Active-passive setup with active in the East and passive (read replica) in the West.
+Route 53:
+
+Private hosted zone associated with VPCs in both East and West regions.
+A records (alias) pointing to ALBs in both regions.
+Step-by-Step Implementation
+1. Multi-AZ and Multi-Region ECS Deployment
+a. ECS Cluster Setup:
+
+Multi-AZ ECS Clusters: Ensure your ECS clusters span multiple AZs within each region to handle AZ failures.
+Multi-Region ECS Clusters: Duplicate ECS infrastructure in the passive (West) region.
+b. Task Placement:
+
+Use task placement strategies to distribute tasks across AZs within each region.
+2. Multi-AZ and Multi-Region RDS Oracle Deployment
+a. Multi-AZ RDS:
+
+Configure RDS for Multi-AZ deployment in both regions for automatic failover within the region.
+b. Multi-Region RDS:
+
+Set up the primary RDS instance in the East (active) region and a read replica in the West (passive) region.
+Use AWS DMS or native RDS replication to keep the passive region up to date.
+3. Route 53 Configuration
+a. Private Hosted Zone:
+
+Create a Route 53 private hosted zone and associate it with the VPCs in both regions.
+b. DNS Failover:
+
+Use Route 53 health checks and failover routing policies to automatically switch traffic to the passive region in case of failure.
+c. Alias Records:
+
+Create A alias records pointing to the ALBs in both regions.
+Use Cases and Strategies
+Use Case 1: Zone Failure within Active Region (East)
+Strategy:
+
+ECS Service: ECS automatically distributes tasks across healthy AZs. Tasks are restarted in a healthy AZ if an AZ fails.
+RDS: Multi-AZ deployment provides automatic failover to the standby instance in another AZ within the same region.
+Implementation:
+
+Ensure ECS task definitions and services are set up with task placement strategies to spread tasks across AZs.
+Enable Multi-AZ for RDS Oracle in the East region.
+Use Case 2: Region Failure (Disaster Recovery)
+Strategy:
+
+DNS Failover: Use Route 53 to route traffic to the passive region (West) if the active region (East) becomes unhealthy.
+Data Synchronization: Use RDS cross-region read replicas to keep the passive region up to date. Promote the read replica in case of failover.
+Implementation:
+
+Configure Route 53 health checks and failover routing policies.
+Set up cross-region read replicas for RDS Oracle. Use AWS Lambda or automation scripts to promote the read replica in the West region if the East region fails.
+Use Case 3: Application Deployment and Updates
+Strategy:
+
+Blue-Green Deployment: Implement blue-green deployment for ECS services to minimize downtime during updates.
+Database Schema Changes: Use versioned database migrations to ensure compatibility across both regions during deployments.
+Implementation:
+
+Use AWS CodeDeploy or ECS deployment strategies to implement blue-green deployments.
+Use tools like Flyway or Liquibase for version-controlled database migrations.

@@ -1,0 +1,88 @@
+EC2 (Elastic Compute Cloud)
+Basics and Concepts
+
+What is Amazon EC2 and what are its key features?
+Can you explain the difference between instance types (e.g., t2.micro, m5.large)?
+How does EC2 Auto Scaling work and why is it important?
+Instance Management
+
+How do you launch an EC2 instance using the AWS Management Console?
+How would you stop, start, and terminate an EC2 instance?
+Explain how you would connect to an EC2 instance via SSH.
+Security and Networking
+
+What are security groups and how do they differ from network ACLs?
+How do you ensure data on an EC2 instance is secure?
+Explain the use of key pairs in EC2.
+Storage and Monitoring
+
+What is EBS (Elastic Block Store) and how is it used with EC2?
+How would you create an AMI (Amazon Machine Image) from an EC2 instance?
+What are CloudWatch metrics and how are they used to monitor EC2 instances?
+Scaling and Performance
+
+How would you scale EC2 instances to handle increased traffic?
+What are the best practices for optimizing the performance of an EC2 instance?
+Can you explain spot instances and reserved instances?
+Containers (Docker, ECS, EKS)
+Basics and Concepts
+
+What are containers and how do they differ from virtual machines?
+Explain the difference between Docker and container orchestration platforms like ECS and EKS.
+Docker Specific
+
+How do you create a Dockerfile and what are its key components?
+How do you manage Docker containers and images?
+Explain the process of creating and running a Docker container.
+ECS (Elastic Container Service)
+
+What is Amazon ECS and how does it work?
+How do you deploy a containerized application to ECS?
+Explain the differences between Fargate and EC2 launch types in ECS.
+EKS (Elastic Kubernetes Service)
+
+What is Amazon EKS and how does it differ from ECS?
+How do you set up a Kubernetes cluster on EKS?
+Explain the basic components of a Kubernetes cluster.
+Security and Networking
+
+How do you secure Docker containers?
+Explain the role of IAM roles and policies in ECS and EKS.
+How do you handle networking for containers in ECS and EKS?
+Load Balancers (ELB)
+Basics and Concepts
+
+What is a load balancer and why is it important for web applications?
+Explain the differences between the different types of Elastic Load Balancers (ALB, NLB, CLB).
+Application Load Balancer (ALB)
+
+How does an ALB work and what are its key features?
+Explain how path-based routing and host-based routing work in ALB.
+How do you set up SSL termination on an ALB?
+Network Load Balancer (NLB)
+
+What are the use cases for an NLB?
+How does an NLB handle traffic differently than an ALB?
+Explain the benefits of using an NLB for high-throughput workloads.
+Classic Load Balancer (CLB)
+
+What is a Classic Load Balancer and how does it differ from ALB and NLB?
+When would you choose a CLB over ALB or NLB?
+Scaling and Health Checks
+
+How do load balancers integrate with Auto Scaling groups?
+Explain how health checks work with load balancers.
+How do you troubleshoot issues with load balancers?
+Practical and Scenario-Based Questions
+Scenario: Scaling a Web Application
+
+Describe how you would set up an auto-scaling web application using EC2 instances, Docker containers, and an Application Load Balancer.
+Scenario: Migrating to Containers
+
+How would you migrate a traditional web application running on EC2 to a containerized application using ECS?
+Scenario: High Availability
+
+How would you design a high-availability architecture for a web application using EC2 instances and Elastic Load Balancers?
+Scenario: Cost Optimization
+
+What strategies would you use to optimize costs for a web application running on EC2 instances and using load balancers?

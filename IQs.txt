@@ -86,3 +86,114 @@ How would you design a high-availability architecture for a web application usin
 Scenario: Cost Optimization
 
 What strategies would you use to optimize costs for a web application running on EC2 instances and using load balancers?
+
+
+EC2 (Elastic Compute Cloud)
+Basics and Concepts
+
+What is the difference between an On-Demand Instance, a Reserved Instance, and a Spot Instance? When would you use each?
+How does Amazon EC2 handle availability and fault tolerance?
+Explain regions, availability zones, and placement groups.
+Instance Management
+
+Explain the process and implications of resizing an EC2 instance.
+How would you migrate an instance from one region to another?
+Discuss how you can automate the deployment of EC2 instances.
+Describe how you can use AWS CloudFormation or Terraform for this purpose.
+Security and Networking
+
+How do you manage instance access in a multi-user environment?
+Explain the use of IAM roles, policies, and instance profiles.
+What are the best practices for securing an EC2 instance?
+How do you configure and manage a Virtual Private Cloud (VPC) for your EC2 instances?
+Storage and Monitoring
+
+Explain the differences between EBS, EFS, and instance store.
+When would you use each type of storage?
+How do you perform snapshots and backups of EBS volumes?
+Discuss how you can set up CloudWatch alarms and log monitoring for EC2 instances.
+Scaling and Performance
+
+Describe the steps to set up Auto Scaling for an application running on EC2.
+How do you handle high-availability setups for EC2 instances?
+Explain the concept of Elastic IPs and how they are used in a highly available environment.
+Containers (Docker, ECS, EKS)
+Basics and Concepts
+
+Describe the lifecycle of a Docker container.
+Explain the differences between Docker Compose, Docker Swarm, and Kubernetes.
+How do you handle stateful applications in containers?
+Docker Specific
+
+How do you optimize Docker images for faster deployments and lower storage usage?
+Discuss multi-stage builds, caching layers, and minimizing image size.
+Explain the networking modes available in Docker.
+How do you manage environment variables and secrets in Docker containers?
+ECS (Elastic Container Service)
+
+Describe the architecture of an ECS cluster.
+Explain the difference between task definitions and service definitions in ECS.
+How do you perform blue/green deployments in ECS?
+EKS (Elastic Kubernetes Service)
+
+How does EKS integrate with other AWS services (e.g., IAM, VPC, CloudWatch)?
+Describe the process of setting up an EKS cluster from scratch.
+How do you manage and scale Kubernetes clusters in EKS?
+Security and Networking
+
+What are the best practices for securing Docker containers?
+How do you handle IAM roles for tasks in ECS and EKS?
+Explain how you configure networking for ECS tasks and EKS pods.
+Load Balancers (ELB)
+Basics and Concepts
+
+Explain how a load balancer improves the availability and scalability of a web application.
+Describe how you can use a load balancer to distribute traffic across multiple regions.
+Application Load Balancer (ALB)
+
+How do you configure an ALB to route traffic based on URL paths or hostnames?
+Discuss how to set up SSL termination and manage SSL certificates with ALB.
+Explain how to integrate ALB with Auto Scaling groups.
+Network Load Balancer (NLB)
+
+What are the performance characteristics of an NLB compared to an ALB?
+How do you set up an NLB to handle static IP addresses for your application?
+Explain how NLB handles health checks and failover.
+Classic Load Balancer (CLB)
+
+Describe the legacy use cases where CLB might still be preferred over ALB or NLB.
+How do you configure a CLB for sticky sessions?
+Scaling and Health Checks
+
+How do you configure and interpret health checks for different types of load balancers?
+Explain how load balancers work with Auto Scaling to handle sudden traffic spikes.
+How do you troubleshoot common issues with load balancers, such as high latency or dropped connections?
+Scenario-Based Questions
+Scenario: Scaling a Web Application
+
+You have a web application running on EC2 instances behind an ALB. Describe how you would configure Auto Scaling to ensure the application can handle variable traffic loads.
+Scenario: Migrating to Containers
+
+Your team is planning to migrate a monolithic application running on EC2 to a microservices architecture using containers. Describe the steps you would take to accomplish this using ECS or EKS.
+Scenario: High Availability and Disaster Recovery
+
+Design a high-availability and disaster recovery strategy for a web application using EC2 instances, ALB/NLB, and RDS.
+Scenario: Cost Optimization
+
+Your application is experiencing increased costs. How would you analyze and optimize costs for EC2 instances, load balancers, and containers?
+Scenario: Security and Compliance
+
+Describe how you would secure a web application running on EC2 instances behind a load balancer. Include considerations for securing the instances, data in transit, and data at rest.
+Detailed Follow-Up Questions
+EC2 Detailed Questions
+
+How would you handle deploying updates to a fleet of EC2 instances with minimal downtime?
+Discuss the trade-offs between using multiple smaller instances versus fewer larger instances.
+Containers Detailed Questions
+
+How do you handle persistent storage for stateful applications in a containerized environment?
+What strategies would you use to monitor and log Docker container activity?
+Load Balancers Detailed Questions
+
+How do you handle session persistence (sticky sessions) across multiple EC2 instances using a load balancer?
+Explain how cross-zone load balancing works and when you would use it.

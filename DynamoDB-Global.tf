@@ -139,3 +139,90 @@ resource "aws_dynamodb_table" "this" {
 
   tags = var.tags
 }
+
+=============================================================================
+
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias  = "us-west-1"
+  region = "us-west-1"
+}
+
+# Call the KMS module
+module "kms" {
+  source = "./modules/kms"
+}
+
+# Create the DynamoDB table in us-east-1 (primary region)
+module "dynamodb_us_east_1" {
+  source                 = "./modules/dynamodb"
+  providers              = { aws = aws.us-east-1 }
+  table_name             = "global-dynamodb-table"
+  hash_key               = "id"
+  range_key              = "created_at"
+  read_capacity          = 5
+  write_capacity         = 5
+  kms_key_arn            = module.kms.kms_key_arn
+  global_secondary_indexes = [
+    {
+      name               = "GSI1"
+      hash_key           = "gsi1-hash"
+      range_key          = "gsi1-range"
+      projection_type    = "ALL"
+      read_capacity      = 5
+      write_capacity     = 5
+    }
+  ]
+  local_secondary_index = {
+    name               = "LSI1"
+    range_key          = "lsi1-range"
+    projection_type    = "INCLUDE"
+    non_key_attributes = ["attribute1", "attribute2"]
+  }
+  tags = {
+    Environment = "production"
+    Project     = "global-dynamodb"
+  }
+}
+
+# Create the DynamoDB table in us-west-1 (secondary region)
+module "dynamodb_us_west_1" {
+  source                 = "./modules/dynamodb"
+  providers              = { aws = aws.us-west-1 }
+  table_name             = module.dynamodb_us_east_1.table_name
+  hash_key               = "id"
+  range_key              = "created_at"
+  read_capacity          = 5
+  write_capacity         = 5
+  kms_key_arn            = module.kms.kms_key_arn
+  global_secondary_indexes = module.dynamodb_us_east_1.global_secondary_indexes
+  local_secondary_index  = module.dynamodb_us_east_1.local_secondary_index
+  tags = {
+    Environment = "production"
+    Project     = "global-dynamodb"
+  }
+}
+
+# Create the Global DynamoDB Table (linking the two regions)
+resource "aws_dynamodb_global_table" "global_table" {
+  provider = aws.us-east-1
+  name     = module.dynamodb_us_east_1.table_name
+
+  replica {
+    region_name = "us-east-1"
+  }
+
+  replica {
+    region_name = "us-west-1"
+  }
+
+  depends_on = [
+    module.dynamodb_us_east_1,
+    module.dynamodb_us_west_1,
+  ]
+}
+

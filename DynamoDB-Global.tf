@@ -226,3 +226,52 @@ resource "aws_dynamodb_global_table" "global_table" {
   ]
 }
 
+
+
+variable "policy_statements" {
+  type = list(object({
+    actions    = list(string)
+    resources  = list(string)
+    principals = list(object({
+      type        = string
+      identifiers = list(string)
+    }))
+  }))
+  
+  default = [
+    {
+      actions    = ["s3:PutObject", "s3:GetObject"]
+      resources  = ["arn:aws:s3:::my-bucket/*"]
+      principals = [
+        {
+          type        = "AWS"
+          identifiers = ["arn:aws:iam::123456789012:user/Alice"]
+        }
+      ]
+    },
+    {
+      actions    = ["dynamodb:PutItem", "dynamodb:GetItem"]
+      resources  = ["arn:aws:dynamodb:us-west-2:123456789012:table/MyTable"]
+      principals = [
+        {
+          type        = "AWS"
+          identifiers = ["arn:aws:iam::123456789012:role/DynamoDBRole"]
+        }
+      ]
+    }
+  ]
+}
+
+resource "aws_iam_policy_document" "example" {
+  for_each = { for idx, stmt in var.policy_statements : idx => stmt }
+
+  statement {
+    actions   = each.value.actions
+    resources = each.value.resources
+
+    principals {
+      type        = each.value.principals[0].type
+      identifiers = each.value.principals[0].identifiers
+    }
+  }
+}

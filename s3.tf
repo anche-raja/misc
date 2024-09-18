@@ -213,3 +213,87 @@ resource "aws_s3_bucket_policy" "destination_bucket_policy" {
 
 
 
+
+
+
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+module "s3_replication_role" {
+  source = "terraform-aws-modules/iam/aws//modules/iam-assumable-role"
+
+  # Define the role that S3 can assume
+  role_name = "s3-replication-role"
+
+  # Trust relationship - only allow S3 to assume this role
+  trusted_role_arns = [
+    "arn:aws:iam::aws:policy/service-role/AmazonS3ServiceRolePolicy"
+  ]
+
+  # Trust policy specifically for S3
+  create_role_with_policy = true
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "s3.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  # The IAM policy that grants S3 the necessary permissions to replicate objects
+  custom_role_policy_arns = [
+    # Define the ARNs of additional managed policies, if needed
+  ]
+
+  custom_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "s3:GetObjectVersionForReplication",
+          "s3:GetObjectVersionAcl",
+          "s3:GetObjectVersionTagging",
+          "s3:ReplicateObject",
+          "s3:ReplicateDelete",
+          "s3:ReplicateTags"
+        ],
+        Resource = [
+          "arn:aws:s3:::source-bucket/*"
+        ]
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "s3:ListBucket"
+        ],
+        Resource = [
+          "arn:aws:s3:::source-bucket"
+        ]
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "s3:PutObject"
+        ],
+        Resource = [
+          "arn:aws:s3:::destination-bucket/*"
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "s3-replication-role"
+    Environment = "production"
+  }
+}
+

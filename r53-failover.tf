@@ -1,3 +1,55 @@
+variable "hosted_zone_id" {
+  description = "The ID of the hosted zone"
+  type        = string
+}
+
+variable "domain_name" {
+  description = "The domain name for the Route 53 record"
+  type        = string
+}
+
+variable "alb_dns_name" {
+  description = "The DNS name of the Application Load Balancer"
+  type        = string
+}
+
+variable "record_type" {
+  description = "The type of Route 53 record (A, CNAME, etc.)"
+  type        = string
+  default     = "A"
+}
+
+variable "routing_policy" {
+  description = "The routing policy (simple, failover, weighted)"
+  type        = string
+}
+
+variable "failover_type" {
+  description = "Type of failover routing (PRIMARY or SECONDARY)"
+  type        = string
+  default     = null  # Should be provided if routing_policy is 'failover'
+}
+
+variable "health_check_id" {
+  description = "Health check ID for failover routing"
+  type        = string
+  default     = null  # Should be provided if routing_policy is 'failover'
+}
+
+variable "ttl" {
+  description = "TTL for the DNS record"
+  type        = number
+  default     = 300
+}
+
+variable "weight" {
+  description = "Weight for weighted routing"
+  type        = number
+  default     = null  # Should be provided if routing_policy is 'weighted'
+}
+
+=============
+
 resource "aws_route53_record" "this" {
   zone_id = var.hosted_zone_id
   name     = var.domain_name

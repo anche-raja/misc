@@ -1,3 +1,53 @@
+resource "aws_route53_record" "this" {
+  zone_id = var.hosted_zone_id
+  name     = var.domain_name
+  type     = var.record_type  # Use the record type provided
+
+  # Create alias only for A or AAAA records
+  dynamic "alias" {
+    for_each = (var.record_type == "A" || var.record_type == "AAAA") ? [1] : []
+
+    content {
+      name                   = var.alb_dns_name
+      zone_id                = aws_lb.my_alb.zone_id  # Adjust based on how you reference the ALB
+      evaluate_target_health = true
+    }
+  }
+
+  # Create failover routing policy if failover is selected
+  dynamic "failover_routing_policy" {
+    for_each = var.routing_policy == "failover" ? [1] : []  # Only create if failover routing is chosen
+
+    content {
+      type = var.failover_type  # PRIMARY or SECONDARY
+    }
+  }
+
+  # Health check ID for failover routing
+  dynamic "health_check_id" {
+    for_each = var.routing_policy == "failover" ? [1] : []  # Only create if failover routing is chosen
+
+    content {
+      health_check_id = var.health_check_id  # Health check ID for failover
+    }
+  }
+
+  # Create weighted routing policy if weighted is selected
+  dynamic "weighted_routing_policy" {
+    for_each = var.routing_policy == "weighted" ? [1] : []  # Only create if weighted routing is chosen
+
+    content {
+      weight = var.weight  # Weight for the weighted policy
+    }
+  }
+
+  # TTL settings
+  ttl = var.ttl
+}
+
+
+
+
 # IAM Role for Lambda Function
 resource "aws_iam_role" "lambda_role" {
   name = "alb-health-check-lambda-role"

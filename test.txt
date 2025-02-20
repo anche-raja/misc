@@ -1,0 +1,4 @@
+Angular app deployed in aws with apigw integration with s3 webstatic bucket.
+I have junction path which needs to be added in index.html as the <base href="/device-dev/' />, And this will be changed for each environment.
+Can you tell how can i add that.
+Right now it has been available in config.json file

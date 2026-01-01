@@ -2,9 +2,9 @@
 """
 analyze_maven_monorepo.py
 
-Scans a Maven monorepo, infers module structure and inter-dependencies from POMs,
-optionally inspects source trees for overlapping packages/classes, and proposes a
-split into 3 app repos + 1 common repo.
+Scans a Maven monorepo, infers module structure + inter-dependencies from pom.xml files,
+optionally inspects source trees for overlapping packages/classes, and proposes a split
+into 3 app repos + 1 common repo.
 
 Outputs (to --out dir):
   - modules.csv        : module coordinates, packaging, paths
@@ -18,8 +18,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import os
-import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,9 +29,7 @@ import xml.etree.ElementTree as ET
 # Helpers: XML namespace handling
 # -----------------------------
 def strip_ns(tag: str) -> str:
-    if "}" in tag:
-        return tag.split("}", 1)[1]
-    return tag
+    return tag.split("}", 1)[1] if "}" in tag else tag
 
 
 def find_child(elem: ET.Element, name: str) -> Optional[ET.Element]:
@@ -44,11 +40,7 @@ def find_child(elem: ET.Element, name: str) -> Optional[ET.Element]:
 
 
 def find_children(elem: ET.Element, name: str) -> List[ET.Element]:
-    out = []
-    for c in list(elem):
-        if strip_ns(c.tag) == name:
-            out.append(c)
-    return out
+    return [c for c in list(elem) if strip_ns(c.tag) == name]
 
 
 def text_of(elem: Optional[ET.Element]) -> Optional[str]:
@@ -56,6 +48,14 @@ def text_of(elem: Optional[ET.Element]) -> Optional[str]:
         return None
     t = elem.text.strip()
     return t if t else None
+
+
+def safe_relpath(path: Path, base: Path) -> str:
+    """Path.relative_to() that works across python versions and non-subpaths."""
+    try:
+        return str(path.relative_to(base))
+    except Exception:
+        return str(path)
 
 
 # -----------------------------
@@ -89,6 +89,15 @@ class PomInfo:
     modules: List[str] = field(default_factory=list)
     dependencies: List[Dep] = field(default_factory=list)
 
+    # ✅ IMPORTANT FIX:
+    # Make PomInfo hashable so it can be used as a dict key / in sets (graph building).
+    # We hash by pom_path which uniquely identifies a module inside the repo.
+    def __hash__(self) -> int:
+        return hash(self.pom_path)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, PomInfo) and self.pom_path == other.pom_path
+
     def ga(self) -> Tuple[str, str]:
         return ((self.group_id or ""), self.artifact_id)
 
@@ -105,13 +114,11 @@ def parse_pom(pom_path: Path) -> PomInfo:
     tree = ET.parse(pom_path)
     root = tree.getroot()
 
-    # direct coords
     gid = text_of(find_child(root, "groupId"))
     aid = text_of(find_child(root, "artifactId")) or ""
     ver = text_of(find_child(root, "version"))
     packaging = text_of(find_child(root, "packaging")) or "jar"
 
-    # parent
     parent = find_child(root, "parent")
     pgid = paid = pver = prel = None
     if parent is not None:
@@ -120,7 +127,6 @@ def parse_pom(pom_path: Path) -> PomInfo:
         pver = text_of(find_child(parent, "version"))
         prel = text_of(find_child(parent, "relativePath"))
 
-    # modules
     modules_elem = find_child(root, "modules")
     modules: List[str] = []
     if modules_elem is not None:
@@ -129,7 +135,6 @@ def parse_pom(pom_path: Path) -> PomInfo:
             if mt:
                 modules.append(mt)
 
-    # dependencies (direct, ignoring dependencyManagement resolution)
     deps: List[Dep] = []
     deps_elem = find_child(root, "dependencies")
     if deps_elem is not None:
@@ -152,8 +157,8 @@ def parse_pom(pom_path: Path) -> PomInfo:
             )
 
     return PomInfo(
-        pom_path=pom_path,
-        module_dir=pom_path.parent,
+        pom_path=pom_path.resolve(),
+        module_dir=pom_path.parent.resolve(),
         group_id=gid,
         artifact_id=aid,
         version=ver,
@@ -171,20 +176,15 @@ def resolve_parent_pom_path(pom: PomInfo) -> Optional[Path]:
     if not pom.parent_artifact_id:
         return None
     rel = pom.parent_relative_path.strip() if pom.parent_relative_path else "../pom.xml"
-    # Maven default: ../pom.xml when relativePath is empty or missing
     candidate = (pom.module_dir / rel).resolve()
-    if candidate.exists() and candidate.is_file():
-        return candidate
-    return None
+    return candidate if candidate.exists() and candidate.is_file() else None
 
 
 def finalize_coords(poms_by_path: Dict[Path, PomInfo]) -> None:
     """
-    Fill missing groupId/version from parent where possible.
-    This is a best-effort resolution without full Maven interpolation.
+    Fill missing groupId/version from parent where possible (best-effort).
     """
     changed = True
-    # iterate until stable (handles multi-level parent chains inside repo)
     while changed:
         changed = False
         for pom in list(poms_by_path.values()):
@@ -198,7 +198,6 @@ def finalize_coords(poms_by_path: Dict[Path, PomInfo]) -> None:
                     pom.version = parent.version
                     changed = True
             else:
-                # fallback to parent's declared G/V if present
                 if pom.group_id is None and pom.parent_group_id:
                     pom.group_id = pom.parent_group_id
                     changed = True
@@ -214,11 +213,7 @@ def list_java_files(module_dir: Path) -> List[Path]:
     src = module_dir / "src" / "main" / "java"
     if not src.exists():
         return []
-    out: List[Path] = []
-    for p in src.rglob("*.java"):
-        if p.is_file():
-            out.append(p)
-    return out
+    return [p for p in src.rglob("*.java") if p.is_file()]
 
 
 def infer_package_from_path(java_file: Path, module_dir: Path) -> Optional[str]:
@@ -235,9 +230,7 @@ def infer_package_from_path(java_file: Path, module_dir: Path) -> Optional[str]:
 def infer_class_fqcn(java_file: Path, module_dir: Path) -> Optional[str]:
     pkg = infer_package_from_path(java_file, module_dir)
     cls = java_file.stem
-    if pkg:
-        return f"{pkg}.{cls}"
-    return cls
+    return f"{pkg}.{cls}" if pkg else cls
 
 
 # -----------------------------
@@ -257,7 +250,6 @@ def detect_apps(poms: List[PomInfo]) -> List[PomInfo]:
         if p.packaging in ("war", "ear"):
             apps.append(p)
             continue
-        # heuristic: has webapp folder
         if (p.module_dir / "src" / "main" / "webapp").exists():
             apps.append(p)
     return apps
@@ -266,7 +258,6 @@ def detect_apps(poms: List[PomInfo]) -> List[PomInfo]:
 def reverse_deps(edges: List[Tuple[PomInfo, PomInfo]]) -> Dict[PomInfo, Set[PomInfo]]:
     r: Dict[PomInfo, Set[PomInfo]] = {}
     for a, b in edges:
-        # edge a -> b (a depends on b)
         r.setdefault(b, set()).add(a)
     return r
 
@@ -283,11 +274,58 @@ def closure(start: PomInfo, adj: Dict[PomInfo, Set[PomInfo]]) -> Set[PomInfo]:
     return seen
 
 
+def detect_cycles_note(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> str:
+    adj: Dict[PomInfo, Set[PomInfo]] = {}
+    for a, b in edges:
+        adj.setdefault(a, set()).add(b)
+
+    visited: Set[PomInfo] = set()
+    stack: Set[PomInfo] = set()
+    cycles: List[List[PomInfo]] = []
+
+    def dfs(node: PomInfo, path: List[PomInfo]) -> None:
+        visited.add(node)
+        stack.add(node)
+        for nxt in adj.get(node, set()):
+            if nxt not in visited:
+                dfs(nxt, path + [nxt])
+            elif nxt in stack:
+                try:
+                    idx = path.index(nxt)
+                    cyc = path[idx:] + [nxt]
+                except ValueError:
+                    cyc = [node, nxt]
+                cycles.append(cyc)
+        stack.remove(node)
+
+    for p in poms:
+        if p not in visited:
+            dfs(p, [p])
+
+    if not cycles:
+        return "- No internal Maven dependency cycles detected."
+
+    uniq = []
+    seen = set()
+    for c in cycles:
+        key = "->".join([x.gav() for x in c])
+        if key not in seen:
+            seen.add(key)
+            uniq.append(c)
+
+    lines = ["- ⚠️ Detected internal dependency cycle(s):"]
+    for c in uniq[:10]:
+        lines.append("  - " + " -> ".join([x.artifact_id for x in c]))
+    if len(uniq) > 10:
+        lines.append(f"  - (and {len(uniq) - 10} more)")
+    lines.append("  - Break cycles before splitting repos (usually by extracting interfaces/models downward).")
+    return "\n".join(lines)
+
+
 # -----------------------------
 # Proposal generation
 # -----------------------------
 def propose_split(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> str:
-    # Build adjacency for internal deps
     adj: Dict[PomInfo, Set[PomInfo]] = {}
     for a, b in edges:
         adj.setdefault(a, set()).add(b)
@@ -295,15 +333,12 @@ def propose_split(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> 
     apps = detect_apps(poms)
     libs = [p for p in poms if p not in apps]
 
-    # reverse deps (fan-in)
     rev = reverse_deps(edges)
 
-    # app dependency closures
     app_closures: Dict[PomInfo, Set[PomInfo]] = {}
     for app in apps:
         app_closures[app] = closure(app, adj)
 
-    # which libs are used by multiple apps?
     lib_to_apps: Dict[PomInfo, Set[PomInfo]] = {l: set() for l in libs}
     for app, clos in app_closures.items():
         for m in clos:
@@ -315,13 +350,11 @@ def propose_split(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> 
         key=lambda x: (-len(lib_to_apps.get(x, set())), x.gav()),
     )
 
-    # also consider high fan-in even if not directly in app closure
     high_fanin = sorted(
         [l for l in libs if len(rev.get(l, set())) >= 2 and l not in shared_libs],
         key=lambda x: (-len(rev.get(x, set())), x.gav()),
     )
 
-    # app-specific libs: used by exactly one app
     app_specific: Dict[PomInfo, List[PomInfo]] = {a: [] for a in apps}
     for l in libs:
         apps_using = lib_to_apps.get(l, set())
@@ -329,12 +362,11 @@ def propose_split(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> 
             only_app = next(iter(apps_using))
             app_specific[only_app].append(l)
 
-    # build proposal text
     lines: List[str] = []
     lines.append("# Proposed 4-Repo Model (Based on POM dependency graph)\n")
 
     if not apps:
-        lines.append("⚠️ No WAR/EAR modules detected. If your apps are not Maven modules, the repo likely contains 3 standalone WAR projects without a reactor parent.\n")
+        lines.append("⚠️ No WAR/EAR modules detected. You may have standalone WAR projects without a reactor parent.\n")
     else:
         lines.append("## Detected Applications (WAR/EAR)\n")
         for a in apps:
@@ -343,8 +375,8 @@ def propose_split(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> 
     lines.append("\n## Shared library candidates (best for `common-platform` repo)\n")
     if not shared_libs and not high_fanin:
         lines.append("- (None detected via internal Maven modules.)")
-        lines.append("  - This usually means shared code is duplicated inside the app projects, not extracted into Maven JAR modules.")
-        lines.append("  - Use `code_overlap.csv` to spot common packages/classes to extract into `common-*` modules.\n")
+        lines.append("  - This often means shared code is duplicated inside the apps, not extracted into JAR modules.")
+        lines.append("  - Use `code_overlap.csv` to spot common packages/classes to extract.\n")
     else:
         if shared_libs:
             lines.append("\n**Used by 2+ apps (strong signal):**")
@@ -375,127 +407,21 @@ def propose_split(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> 
     lines.append("- CI publishes artifacts to Nexus/Artifactory/GitHub Packages.\n")
 
     lines.append("### Repo B/C/D: `app1-web`, `app2-web`, `app3-web`\n")
-    lines.append("- Each repo contains one WAR (and any truly app-exclusive modules).")
-    lines.append("- Each imports `platform-bom` (or uses parent POM) and depends on `common-*`.\n")
+    lines.append("- Each repo contains one WAR (and any app-exclusive modules).")
+    lines.append("- Each imports `platform-bom` (or uses a shared parent POM) and depends on `common-*`.\n")
 
     lines.append("## Notes / Risks Detected\n")
-    # cycles
-    cycle_note = detect_cycles_note(poms, edges)
-    lines.append(cycle_note)
+    lines.append(detect_cycles_note(poms, edges))
 
-    # If you have more than 3 apps, still propose same pattern
     if len(apps) > 3:
-        lines.append(f"\nℹ️ Detected **{len(apps)}** app-like modules. The same split pattern applies: 1 common repo + 1 repo per WAR.\n")
+        lines.append(f"\nℹ️ Detected **{len(apps)}** app-like modules. Same pattern applies: 1 common repo + 1 repo per WAR.\n")
 
     return "\n".join(lines)
 
 
-def detect_cycles_note(poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> str:
-    adj: Dict[PomInfo, Set[PomInfo]] = {}
-    for a, b in edges:
-        adj.setdefault(a, set()).add(b)
-
-    visited: Set[PomInfo] = set()
-    stack: Set[PomInfo] = set()
-    cycles: List[List[PomInfo]] = []
-
-    def dfs(node: PomInfo, path: List[PomInfo]) -> None:
-        visited.add(node)
-        stack.add(node)
-        for nxt in adj.get(node, set()):
-            if nxt not in visited:
-                dfs(nxt, path + [nxt])
-            elif nxt in stack:
-                # found cycle
-                try:
-                    idx = path.index(nxt)
-                    cyc = path[idx:] + [nxt]
-                except ValueError:
-                    cyc = [node, nxt]
-                cycles.append(cyc)
-        stack.remove(node)
-
-    for p in poms:
-        if p not in visited:
-            dfs(p, [p])
-
-    if not cycles:
-        return "- No internal Maven dependency cycles detected."
-    # summarize unique-ish cycles
-    uniq = []
-    seen = set()
-    for c in cycles:
-        key = "->".join([x.gav() for x in c])
-        if key not in seen:
-            seen.add(key)
-            uniq.append(c)
-
-    lines = ["- ⚠️ Detected internal dependency cycle(s):"]
-    for c in uniq[:10]:
-        lines.append("  - " + " -> ".join([x.artifact_id for x in c]))
-    if len(uniq) > 10:
-        lines.append(f"  - (and {len(uniq)-10} more)")
-    lines.append("  - You’ll want to break cycles before splitting repos (usually by extracting interfaces/models downward).")
-    return "\n".join(lines)
-
-
 # -----------------------------
-# Main analysis
+# Output writers
 # -----------------------------
-def analyze(repo: Path, out_dir: Path, scan_sources: bool = True) -> None:
-    # 1) find all pom.xml
-    pom_paths = [p for p in repo.rglob("pom.xml") if p.is_file()]
-
-    # ignore target/ folders
-    pom_paths = [p for p in pom_paths if "target" not in p.parts]
-
-    if not pom_paths:
-        raise SystemExit(f"No pom.xml found under {repo}")
-
-    # 2) parse poms
-    poms_by_path: Dict[Path, PomInfo] = {}
-    for p in pom_paths:
-        try:
-            info = parse_pom(p)
-            poms_by_path[p.resolve()] = info
-        except Exception as e:
-            print(f"[WARN] Failed to parse {p}: {e}", file=sys.stderr)
-
-    poms = list(poms_by_path.values())
-
-    # 3) finalize coords using parent inheritance where possible
-    finalize_coords(poms_by_path)
-    poms = list(poms_by_path.values())
-
-    # 4) build internal dependency edges
-    idx = build_internal_index(poms)
-    edges: List[Tuple[PomInfo, PomInfo]] = []
-    for p in poms:
-        for d in p.dependencies:
-            target = idx.get(d.ga())
-            if target:
-                # ignore test-only edges (optional)
-                if d.scope and d.scope.strip() == "test":
-                    continue
-                edges.append((p, target))
-
-    # 5) write outputs
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    write_modules_csv(out_dir / "modules.csv", poms, repo)
-    write_deps_csv(out_dir / "deps.csv", edges, repo)
-    write_graph_dot(out_dir / "graph.dot", poms, edges)
-
-    # 6) optional source overlap analysis
-    if scan_sources:
-        overlap_rows = compute_code_overlap(poms)
-        write_code_overlap_csv(out_dir / "code_overlap.csv", overlap_rows)
-
-    # 7) proposal
-    proposal = propose_split(poms, edges)
-    (out_dir / "proposal.md").write_text(proposal, encoding="utf-8")
-
-
 def write_modules_csv(path: Path, poms: List[PomInfo], repo: Path) -> None:
     with path.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
@@ -507,8 +433,8 @@ def write_modules_csv(path: Path, poms: List[PomInfo], repo: Path) -> None:
                 p.artifact_id,
                 p.version or "",
                 p.packaging,
-                str(p.module_dir.relative_to(repo) if p.module_dir.is_relative_to(repo) else p.module_dir),
-                str(p.pom_path.relative_to(repo) if p.pom_path.is_relative_to(repo) else p.pom_path),
+                safe_relpath(p.module_dir, repo),
+                safe_relpath(p.pom_path, repo),
             ])
 
 
@@ -520,13 +446,12 @@ def write_deps_csv(path: Path, edges: List[Tuple[PomInfo, PomInfo]], repo: Path)
             w.writerow([
                 a.gav(),
                 b.gav(),
-                str(a.module_dir.relative_to(repo) if a.module_dir.is_relative_to(repo) else a.module_dir),
-                str(b.module_dir.relative_to(repo) if b.module_dir.is_relative_to(repo) else b.module_dir),
+                safe_relpath(a.module_dir, repo),
+                safe_relpath(b.module_dir, repo),
             ])
 
 
 def write_graph_dot(path: Path, poms: List[PomInfo], edges: List[Tuple[PomInfo, PomInfo]]) -> None:
-    # simple DOT, nodes labeled by artifactId
     node_id: Dict[PomInfo, str] = {}
     for i, p in enumerate(sorted(poms, key=lambda x: x.gav())):
         node_id[p] = f"n{i}"
@@ -542,13 +467,9 @@ def write_graph_dot(path: Path, poms: List[PomInfo], edges: List[Tuple[PomInfo, 
 
 
 def compute_code_overlap(poms: List[PomInfo]) -> List[Tuple[str, str, int, str]]:
-    """
-    Returns rows: (kind, name, module_count, modules)
-    kind in {"package", "class"}
-    """
-    # Only consider modules that look like apps/libs with src/main/java
-    pkg_map: Dict[str, Dict[str, int]] = {}   # package -> {artifactId: file_count}
-    cls_map: Dict[str, Set[str]] = {}         # fqcn -> {artifactId}
+    pkg_map: Dict[str, Dict[str, int]] = {}  # package -> {artifactId: file_count}
+    cls_map: Dict[str, Set[str]] = {}        # fqcn -> {artifactId}
+
     for p in poms:
         files = list_java_files(p.module_dir)
         if not files:
@@ -564,18 +485,15 @@ def compute_code_overlap(poms: List[PomInfo]) -> List[Tuple[str, str, int, str]]
 
     rows: List[Tuple[str, str, int, str]] = []
 
-    # packages present in 2+ modules
     for pkg, per_mod in pkg_map.items():
         if len(per_mod) >= 2:
             mods = ", ".join([f"{m}({c})" for m, c in sorted(per_mod.items())])
             rows.append(("package", pkg, len(per_mod), mods))
 
-    # classes duplicated across modules (often copy/paste)
     for cls, mods in cls_map.items():
         if len(mods) >= 2:
             rows.append(("class", cls, len(mods), ", ".join(sorted(mods))))
 
-    # sort: most shared first
     rows.sort(key=lambda r: (-r[2], r[0], r[1]))
     return rows
 
@@ -588,6 +506,55 @@ def write_code_overlap_csv(path: Path, rows: List[Tuple[str, str, int, str]]) ->
             w.writerow(list(r))
 
 
+# -----------------------------
+# Main analysis
+# -----------------------------
+def analyze(repo: Path, out_dir: Path, scan_sources: bool = True) -> None:
+    pom_paths = [p for p in repo.rglob("pom.xml") if p.is_file()]
+    pom_paths = [p for p in pom_paths if "target" not in p.parts]
+
+    if not pom_paths:
+        raise SystemExit(f"No pom.xml found under {repo}")
+
+    poms_by_path: Dict[Path, PomInfo] = {}
+    for p in pom_paths:
+        try:
+            info = parse_pom(p)
+            poms_by_path[info.pom_path] = info
+        except Exception as e:
+            print(f"[WARN] Failed to parse {p}: {e}", file=sys.stderr)
+
+    if not poms_by_path:
+        raise SystemExit("No valid pom.xml files could be parsed.")
+
+    finalize_coords(poms_by_path)
+    poms = list(poms_by_path.values())
+
+    idx = build_internal_index(poms)
+
+    edges: List[Tuple[PomInfo, PomInfo]] = []
+    for p in poms:
+        for d in p.dependencies:
+            target = idx.get(d.ga())
+            if target:
+                if d.scope and d.scope.strip() == "test":
+                    continue
+                edges.append((p, target))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    write_modules_csv(out_dir / "modules.csv", poms, repo)
+    write_deps_csv(out_dir / "deps.csv", edges, repo)
+    write_graph_dot(out_dir / "graph.dot", poms, edges)
+
+    if scan_sources:
+        overlap_rows = compute_code_overlap(poms)
+        write_code_overlap_csv(out_dir / "code_overlap.csv", overlap_rows)
+
+    proposal = propose_split(poms, edges)
+    (out_dir / "proposal.md").write_text(proposal, encoding="utf-8")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=".", help="Path to monorepo root")
@@ -597,11 +564,12 @@ def main() -> None:
 
     repo = Path(args.repo).resolve()
     out_dir = Path(args.out).resolve()
+
     analyze(repo, out_dir, scan_sources=(not args.no_source_scan))
 
     print(f"Done. Reports written to: {out_dir}")
     print(f"- proposal: {out_dir / 'proposal.md'}")
-    print(f"- graph:    {out_dir / 'graph.dot'} (render with graphviz: dot -Tpng graph.dot -o graph.png)")
+    print(f"- graph:    {out_dir / 'graph.dot'} (render: dot -Tpng graph.dot -o graph.png)")
     print(f"- modules:  {out_dir / 'modules.csv'}")
     print(f"- deps:     {out_dir / 'deps.csv'}")
     if not args.no_source_scan:

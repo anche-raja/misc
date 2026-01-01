@@ -578,3 +578,38 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+=========
+
+python3 - <<'PY'
+import csv
+from collections import defaultdict
+
+deps = defaultdict(list)
+mods = set()
+
+with open("monorepo-analysis/deps.csv", newline="", encoding="utf-8") as f:
+    r = csv.DictReader(f)
+    for row in r:
+        deps[row["from"]].append(row["to"])
+        mods.add(row["from"]); mods.add(row["to"])
+
+def show(root, indent=0, seen=None):
+    if seen is None: seen=set()
+    print("  "*indent + root)
+    if root in seen: 
+        print("  "*(indent+1) + "(cycle)")
+        return
+    seen.add(root)
+    for child in sorted(deps.get(root, [])):
+        show(child, indent+1, seen.copy())
+
+# likely roots = those never appearing as "to"
+all_to = {t for fr in deps for t in deps[fr]}
+roots = sorted(mods - all_to)
+
+for rt in roots[:20]:
+    show(rt)
+    print()
+PY

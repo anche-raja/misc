@@ -1,0 +1,154 @@
+What we migrated
+1) Struts URL mapping → Spring MVC mapping
+
+Struts used namespace + action name + method (often ending in .action).
+
+In Spring, we map:
+
+namespace → @RequestMapping("/namespace") at controller level
+
+action name → @GetMapping("/ActionName") or @PostMapping(...)
+
+method → controller method name (or separate handler methods)
+
+Important: our Spring DispatcherServlet is mapped to /cmc/*, so Spring endpoints are under:
+
+/cmc/<namespace>/<path>
+
+2) Redirects and links: stop sending users back to Struts
+
+Any redirect like:
+
+redirect:/<appContext>/.../Dashboard.action
+sends the user back to Struts → “no action mapped”.
+
+We changed redirects to Spring endpoints:
+
+return "redirect:/cmc/devicemam/DashBoard";
+
+JSP links were updated from hardcoded + .action:
+
+/devicemanagementWeb/devicemanagement/DashBoard.action
+to context-safe Spring URLs:
+
+<c:url value='/cmc/devicemam/DashBoard'/>
+
+3) View resolver location
+
+We found view resolution is configured via InternalResourceViewResolver in the Java config class referenced by contextConfigLocation for servlet cmc.
+
+Controller returns logical view names (no /WEB-INF and no .jsp):
+
+return "devicemanagement/dashboard";
+
+Resolver expands to:
+
+/WEB-INF/jsp/devicemanagement/dashboard.jsp (based on prefix/suffix)
+
+4) JSP migration: Struts tags cannot be used under Spring MVC
+
+When Spring renders JSPs, Struts tags (<s:...>, <sx:...>) fail with:
+
+“Struts dispatcher cannot be found”
+
+Even if the main JSP is clean, Struts tags often remain in included JSPF/header/footer/taglibs.
+
+Also: HTML comments <!-- --> do not disable JSP tags; must remove or use JSP comments <%-- --%>.
+
+5) Dojo / DojoX usage
+
+We confirmed we are not using Struts Dojo tags, only plain scripts:
+
+dijit.Tooltip, dijit/form/Button, dojox/grid/DataGrid, dojox/data/QueryReadStore, dojo/date/locale
+
+That means Dojo can remain, but we must update:
+
+.action AJAX URLs → Spring endpoints
+
+relative paths → context-safe paths
+
+6) Static resources (images/scripts): fix relative paths
+
+Links like ../images/ques.png break after URL changes.
+
+We changed them to context-safe URLs:
+
+<c:url value='/images/ques.png'/>
+
+7) Struts BaseAction pattern → Spring-safe equivalent
+
+In Struts, BaseAction had shared utilities and sometimes a private model field reused across action methods.
+
+In Spring controllers (singleton), never store per-request/per-user model as fields.
+
+Equivalent Spring patterns:
+
+@ModelAttribute method (per request) in a BaseController
+
+or @ControllerAdvice to populate common model attributes for many controllers
+
+interceptors/filters for cross-cutting concerns
+
+8) Struts ModelDrivenInterceptor → Spring binding
+
+Struts ModelDrivenInterceptor is Struts-only and is not ported.
+
+Spring replacement:
+
+@ModelAttribute DTO/form objects + automatic data binding
+
+@InitBinder if custom conversions needed
+
+9) Session usage (Struts session map → Spring session)
+
+Struts session puts become:
+
+HttpSession.setAttribute(...) / getAttribute(...)
+
+Use session only for truly cross-request state; otherwise prefer request model.
+
+10) AJAX token pattern
+
+You have an AjaxTokenListener (extends HttpSessionListener) that generates a GUID and stores it in session, and removes it on session destroy.
+
+In Spring MVC 4.3 you can keep the same listener (Servlet container feature):
+
+use javax.servlet.http.HttpSessionListener
+
+register via web.xml listener (most reliable) or @WebListener
+
+If security refuses sending the token in header/hidden field:
+
+that token cannot be used for request validation
+
+duplicate prevention should be done via server-side idempotency (DB unique constraints / dedupe keys) + PRG where applicable
+
+if needed, CSRF can be enforced at WebSEAL (edge) rather than in-app tokens
+
+Key “rules of thumb” for the team
+
+Never redirect to .action from Spring controllers.
+
+Never hardcode context root in JSP (/DevicemanagementWeb/...) → always use ${pageContext.request.contextPath} or <c:url>.
+
+No Struts tags in Spring-rendered JSPs, including included fragments.
+
+Spring Controllers are singleton → no request state in fields.
+
+BaseAction utilities become:
+
+@ControllerAdvice / @ModelAttribute for common model data
+
+HandlerInterceptor / Filter for cross-cutting logic
+
+Services for business logic
+
+Dojo is fine if it’s pure JS; just update URLs and resource paths.
+
+If you want, I can turn this into a one-page internal wiki/Confluence style guide with:
+
+“before/after” code snippets
+
+a checklist per screen you migrate
+
+common errors + fixes (no action mapped, Struts dispatcher missing, resource paths, include issues)

@@ -1,0 +1,33 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.yourcompany.LegacyToModernMigration
+displayName: "Migrate Struts/Spring App to Java 21 & Jakarta"
+description: "Composite recipe to upgrade Java 8->21, Javax->Jakarta, and fix Struts 7 package moves."
+
+recipeList:
+  # --- 1. CORE UPGRADES ---
+  # Upgrade Java version (handles var usage, deprecated APIs, etc.)
+  - org.openrewrite.java.migrate.UpgradeJavaVersion:
+      version: 21
+  
+  # The Big Rename: javax.* -> jakarta.* (Servlet, JPA, JMS, etc.)
+  - org.openrewrite.java.migrate.jakarta.JavaxMigrationToJakarta
+
+  # Upgrade Spring Framework to 6.0 (handles namespace changes for Spring)
+  - org.openrewrite.java.spring.framework.UpgradeSpringFramework:
+      newVersion: 6.0.x
+
+  # --- 2. STRUTS 7 / XWORK MIGRATION ---
+  # Struts 6/7 moved XWork classes from com.opensymphony.xwork2 -> org.apache.struts2
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: com.opensymphony.xwork2
+      newPackageName: org.apache.struts2
+      recursive: true
+
+  # Specific fix for ActionSupport if ChangePackage misses explicit imports
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.ActionSupport
+      newFullyQualifiedTypeName: org.apache.struts2.ActionSupport
+
+  # --- 3. CLEANUP ---
+  # Remove unused imports left behind by the migration
+  - org.openrewrite.java.RemoveUnusedImports

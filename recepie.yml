@@ -141,3 +141,111 @@ mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.27.0:run \
   -Drewrite.activeRecipes=org.openrewrite.java.dependencies.UpgradeDependencyVersion \
   -DgroupId=org.apache.struts \
   -DnewVersion=6.7.4
+
+
+  ________________________________________________________
+
+  ---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.yourcompany.UpgradeStruts600To674
+displayName: Upgrade Struts 6.0.0 to 6.7.4 (Java 8 compatible)
+description: |
+  Complete migration recipe to upgrade from Struts 6.0.0 to Struts 6.7.4.
+  Handles package migrations and method renames for Aware interfaces.
+  Note: Struts 6.7.4 is the latest stable version that supports Java 8.
+
+recipeList:
+  # 1. Migrate Aware interface packages from org.apache.struts2.interceptor to org.apache.struts2.action
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.ApplicationAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.ApplicationAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.SessionAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.SessionAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.ParameterAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.ParameterAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.HttpParametersAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.HttpParametersAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.PrincipalAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.PrincipalAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.ServletRequestAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.ServletRequestAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.ServletResponseAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.ServletResponseAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.util.ServletContextAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.ServletContextAware
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.struts2.interceptor.CookiesAware
+      newFullyQualifiedTypeName: org.apache.struts2.action.CookiesAware
+
+  # 2. Rename methods from set* to with* for Aware interfaces
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.ApplicationAware setApplication(java.util.Map)
+      newMethodName: withApplication
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.SessionAware setSession(java.util.Map)
+      newMethodName: withSession
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.ParameterAware setParameters(java.util.Map)
+      newMethodName: withParameters
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.HttpParametersAware setParameters(org.apache.struts2.dispatcher.HttpParameters)
+      newMethodName: withParameters
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.PrincipalAware setPrincipalProxy(org.apache.struts2.interceptor.PrincipalProxy)
+      newMethodName: withPrincipalProxy
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.ServletRequestAware setServletRequest(javax.servlet.http.HttpServletRequest)
+      newMethodName: withServletRequest
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.ServletResponseAware setServletResponse(javax.servlet.http.HttpServletResponse)
+      newMethodName: withServletResponse
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.ServletContextAware setServletContext(javax.servlet.ServletContext)
+      newMethodName: withServletContext
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.action.CookiesAware setCookiesMap(java.util.Map)
+      newMethodName: withCookiesMap
+      matchOverrides: true
+
+  # 3. Migrate other common type changes
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.config.providers.XmlConfigurationProvider
+      newFullyQualifiedTypeName: org.apache.struts2.config.StrutsXmlConfigurationProvider
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.conversion.TypeConversionException
+      newFullyQualifiedTypeName: org.apache.struts2.conversion.TypeConversionException
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.XWorkException
+      newFullyQualifiedTypeName: org.apache.struts2.StrutsException
+
+  # 4. Upgrade all Struts dependencies to 6.7.4
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.apache.struts
+      artifactId: "*"
+      newVersion: 6.7.4
+  
+  # 5. Update version properties if they exist
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: struts2.version
+      newValue: 6.7.4
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: struts.version
+      newValue: 6.7.4
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: struts2-version
+      newValue: 6.7.4

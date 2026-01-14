@@ -16,3 +16,115 @@ mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:dryRun \
   -Drewrite.configLocation=${maven.multiModuleProjectDirectory}/rewrite.yml \
   -Drewrite.activeRecipes=com.yourorg.struts.UpgradeStruts_6_0_to_6_7_4
+
+
+
+  ---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.yourcompany.UpgradeStruts600To674
+displayName: Upgrade Struts 6.0.0 to 6.7.4 (Java 8 compatible)
+description: |
+  Complete migration recipe to upgrade from Struts 6.0.0 to Struts 6.7.4.
+  This recipe includes all necessary code changes and dependency updates.
+  Note: Struts 6.7.4 is the latest stable version that supports Java 8.
+  Struts 6.8.0 has security vulnerability S2-068, and Struts 7.x requires Java 17.
+
+recipeList:
+  # First, ensure all Struts 6.0 patterns are in place
+  # (useful if you have any remnants from Struts 2.x)
+  
+  # 1. Migrate "Aware" interfaces (set* to with* methods)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.ApplicationAware setApplication(java.util.Map)
+      newMethodName: withApplication
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.SessionAware setSession(java.util.Map)
+      newMethodName: withSession
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.ParameterAware setParameters(java.util.Map)
+      newMethodName: withParameters
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.HttpParametersAware setParameters(org.apache.struts2.dispatcher.HttpParameters)
+      newMethodName: withParameters
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.PrincipalAware setPrincipalProxy(org.apache.struts2.interceptor.PrincipalProxy)
+      newMethodName: withPrincipalProxy
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.ServletRequestAware setServletRequest(javax.servlet.http.HttpServletRequest)
+      newMethodName: withServletRequest
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.struts2.interceptor.ServletResponseAware setServletResponse(javax.servlet.http.HttpServletResponse)
+      newMethodName: withServletResponse
+      matchOverrides: true
+
+  # 2. Migrate OpenSymphony classes to Struts classes
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.config.providers.XmlConfigurationProvider
+      newFullyQualifiedTypeName: org.apache.struts2.config.StrutsXmlConfigurationProvider
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.conversion.TypeConversionException
+      newFullyQualifiedTypeName: org.apache.struts2.conversion.TypeConversionException
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.opensymphony.xwork2.XWorkException
+      newFullyQualifiedTypeName: org.apache.struts2.StrutsException
+
+  # 3. Migrate Struts constants (XWork to Struts constants)
+  - org.openrewrite.xml.ChangeTagAttribute:
+      elementName: constant
+      attributeName: name
+      newValue: struts.converter.collection
+      oldValue: collectionConverter
+  - org.openrewrite.xml.ChangeTagAttribute:
+      elementName: constant
+      attributeName: name
+      newValue: struts.converter.date
+      oldValue: dateConverter
+  - org.openrewrite.xml.ChangeTagAttribute:
+      elementName: constant
+      attributeName: name
+      newValue: struts.converter.number
+      oldValue: numberConverter
+  - org.openrewrite.xml.ChangeTagAttribute:
+      elementName: constant
+      attributeName: name
+      newValue: struts.converter.string
+      oldValue: stringConverter
+  - org.openrewrite.xml.ChangeTagAttribute:
+      elementName: constant
+      attributeName: name
+      newValue: struts.converter.array
+      oldValue: arrayConverter
+  - org.openrewrite.xml.ChangeTagAttribute:
+      elementName: constant
+      attributeName: name
+      newValue: struts.devMode
+      oldValue: devMode
+
+  # 4. Update Struts DTD to 6.7 (or use 6.0 if you prefer)
+  - org.openrewrite.java.struts.MigrateStrutsDtd:
+      strutsVersion: "6.0"
+
+  # 5. Upgrade all Struts dependencies to 6.7.4
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.apache.struts
+      oldArtifactId: struts-core
+      newArtifactId: struts2-core
+      newVersion: 6.7.4
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.apache.struts
+      artifactId: "*"
+      newVersion: 6.7.4
+  
+  # 6. Update version properties if used
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: struts2.version
+      newValue: 6.7.4
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: struts.version
+      newValue: 6.7.4

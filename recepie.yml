@@ -11,3 +11,8 @@ recipeList:
 
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
   -Drewrite.activeRecipes=com.yourorg.struts.UpgradeStruts_6_0_to_6_7_4
+
+
+mvn -U org.openrewrite.maven:rewrite-maven-plugin:dryRun \
+  -Drewrite.configLocation=${maven.multiModuleProjectDirectory}/rewrite.yml \
+  -Drewrite.activeRecipes=com.yourorg.struts.UpgradeStruts_6_0_to_6_7_4

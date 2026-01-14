@@ -128,3 +128,16 @@ recipeList:
   - org.openrewrite.maven.ChangePropertyValue:
       key: struts.version
       newValue: 6.7.4
+
+
+
++++++++++++++++++++++++++++++
+mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.27.0:run \
+  -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-struts:LATEST \
+  -Drewrite.activeRecipes=com.yourcompany.UpgradeStruts600To674
+
+  mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.27.0:run \
+  -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:LATEST \
+  -Drewrite.activeRecipes=org.openrewrite.java.dependencies.UpgradeDependencyVersion \
+  -DgroupId=org.apache.struts \
+  -DnewVersion=6.7.4

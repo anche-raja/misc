@@ -67,7 +67,7 @@ def parse_gitlab_vulnerabilities(json_file_path):
 
 
 def export_to_csv(vulnerabilities, output_file='vulnerabilities.csv'):
-    """Export vulnerabilities to CSV file."""
+    """Export vulnerabilities to CSV file with pipe delimiter."""
     if not vulnerabilities:
         print("No vulnerabilities to export.")
         return
@@ -84,7 +84,7 @@ def export_to_csv(vulnerabilities, output_file='vulnerabilities.csv'):
             'identifiers',
             'id'
         ]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|')
         
         writer.writeheader()
         writer.writerows(vulnerabilities)

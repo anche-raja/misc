@@ -15,24 +15,35 @@ from collections import defaultdict
 def clean_text(text):
     """
     Clean text by removing newlines, extra spaces, and special characters.
+    Ensures text is on a single line.
     
     Args:
         text: Text to clean
         
     Returns:
-        Cleaned text
+        Cleaned text on a single line
     """
     if not text or text == 'N/A':
         return text
     
-    # Replace newlines with spaces
+    # Replace all types of newlines and carriage returns with spaces
     text = text.replace('\n', ' ').replace('\r', ' ')
+    text = text.replace('\\n', ' ').replace('\\r', ' ')
+    
+    # Replace tabs with spaces
+    text = text.replace('\t', ' ').replace('\\t', ' ')
+    
+    # Remove pipe characters to avoid CSV delimiter conflicts
+    text = text.replace('|', '-')
+    
+    # Remove any other control characters
+    text = ''.join(char if char.isprintable() or char == ' ' else ' ' for char in text)
     
     # Replace multiple spaces with single space
     text = ' '.join(text.split())
     
-    # Remove pipe characters to avoid CSV delimiter conflicts
-    text = text.replace('|', ' ')
+    # Remove quotes that might cause CSV issues
+    text = text.replace('"', "'")
     
     return text.strip()
 
@@ -40,13 +51,14 @@ def clean_text(text):
 def summarize_description(description, max_length=200):
     """
     Summarize description to a maximum length.
+    Ensures output is on a single line.
     
     Args:
         description: Full description text
         max_length: Maximum length for summary
         
     Returns:
-        Summarized description
+        Summarized description on a single line
     """
     description = clean_text(description)
     
@@ -107,7 +119,22 @@ def parse_gitlab_vulnerabilities(json_file_path):
             raw_description = vuln.get('description', 'N/A')
             raw_solution = vuln.get('solution', 'N/A')
             
+            # Extract package/artifact information
+            location_info = vuln.get('location', {})
+            dependency_info = location_info.get('dependency', {})
+            package_info = dependency_info.get('package', {})
+            
+            package_name = package_info.get('name', 'N/A')
+            current_version = dependency_info.get('version', 'N/A')
+            
+            # Create artifact identifier (e.g., "org.apache.struts:struts2-core:6.0.0")
+            if package_name != 'N/A' and current_version != 'N/A':
+                artifact = f"{package_name}:{current_version}"
+            else:
+                artifact = package_name
+            
             vuln_info = {
+                'artifact': artifact,
                 'name': clean_text(vuln.get('name', 'N/A')),
                 'description': summarize_description(raw_description, max_length=250),
                 'severity': vuln.get('severity', 'N/A'),
@@ -159,10 +186,11 @@ def export_to_csv(vulnerabilities, output_file='high_severity_vulnerabilities.cs
     
     # Write to CSV with pipe delimiter and proper quoting
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = ['name', 'description', 'severity', 'solution']
+        fieldnames = ['artifact', 'name', 'description', 'severity', 'solution']
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|', 
-                               quoting=csv.QUOTE_MINIMAL, 
-                               quotechar='"')
+                               quoting=csv.QUOTE_NONE,
+                               escapechar='\\',
+                               lineterminator='\n')
         
         writer.writeheader()
         
@@ -172,7 +200,7 @@ def export_to_csv(vulnerabilities, output_file='high_severity_vulnerabilities.cs
                 writer.writerow(vuln)
     
     print(f"✓ Successfully exported to '{output_file}' (pipe-delimited)")
-    print(f"  Fields: name | description | severity | solution")
+    print(f"  Fields: artifact | name | description | severity | solution")
     print(f"  Note: Descriptions are summarized to ~250 characters max")
 
 
@@ -185,10 +213,11 @@ def export_categorized_csv(vulnerabilities, output_file='high_severity_by_soluti
     categorized = categorize_by_solution(vulnerabilities)
     
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = ['solution_category', 'name', 'description', 'severity', 'solution']
+        fieldnames = ['solution_category', 'artifact', 'name', 'description', 'severity', 'solution']
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|',
-                               quoting=csv.QUOTE_MINIMAL,
-                               quotechar='"')
+                               quoting=csv.QUOTE_NONE,
+                               escapechar='\\',
+                               lineterminator='\n')
         
         writer.writeheader()
         
@@ -200,7 +229,7 @@ def export_categorized_csv(vulnerabilities, output_file='high_severity_by_soluti
                 writer.writerow(row)
     
     print(f"✓ Also exported categorized version to '{output_file}'")
-    print(f"  Fields: solution_category | name | description | severity | solution")
+    print(f"  Fields: solution_category | artifact | name | description | severity | solution")
 
 
 def main():

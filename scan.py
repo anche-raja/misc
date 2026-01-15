@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """
 GitLab Dependency Scanning Vulnerability JSON Parser
-Extracts name, description, solution, and severity to CSV file
+Extracts HIGH severity vulnerabilities and categorizes by solution
+Output: Pipe-delimited CSV with name, description, severity, solution
 """
 
 import json
 import csv
 import sys
 from pathlib import Path
+from collections import defaultdict
 
 
 def parse_gitlab_vulnerabilities(json_file_path):
     """
-    Parse GitLab dependency scanning JSON file and extract vulnerability information.
+    Parse GitLab dependency scanning JSON file and extract HIGH severity vulnerabilities.
     
     Args:
         json_file_path: Path to the GitLab vulnerability JSON file
@@ -39,81 +41,113 @@ def parse_gitlab_vulnerabilities(json_file_path):
         print("Warning: No vulnerabilities found in the JSON file")
         return vulnerabilities
     
+    # Filter only HIGH severity vulnerabilities
     for vuln in vuln_list:
-        # Extract location information
-        location_info = vuln.get('location', {})
-        dependency_info = location_info.get('dependency', {})
-        package_info = dependency_info.get('package', {})
+        severity = vuln.get('severity', '').upper()
         
-        # Extract identifiers (CVE, etc.)
-        identifiers = vuln.get('identifiers', [])
-        cve_list = [ident.get('value', '') for ident in identifiers if ident.get('type') == 'cve']
-        all_identifiers = [ident.get('value', '') for ident in identifiers]
-        
-        vuln_info = {
-            'name': vuln.get('name', 'N/A'),
-            'severity': vuln.get('severity', 'N/A'),
-            'description': vuln.get('description', 'N/A'),
-            'solution': vuln.get('solution', 'N/A'),
-            'package_name': package_info.get('name', 'N/A'),
-            'package_version': dependency_info.get('version', 'N/A'),
-            'cve': ', '.join(cve_list) if cve_list else 'N/A',
-            'identifiers': ', '.join(all_identifiers) if all_identifiers else 'N/A',
-            'id': vuln.get('id', 'N/A'),
-        }
-        vulnerabilities.append(vuln_info)
+        if severity == 'HIGH':
+            vuln_info = {
+                'name': vuln.get('name', 'N/A'),
+                'description': vuln.get('description', 'N/A'),
+                'severity': vuln.get('severity', 'N/A'),
+                'solution': vuln.get('solution', 'N/A'),
+            }
+            vulnerabilities.append(vuln_info)
     
     return vulnerabilities
 
 
-def export_to_csv(vulnerabilities, output_file='vulnerabilities.csv'):
-    """Export vulnerabilities to CSV file with pipe delimiter."""
+def categorize_by_solution(vulnerabilities):
+    """
+    Categorize vulnerabilities by their solution.
+    
+    Args:
+        vulnerabilities: List of vulnerability dictionaries
+        
+    Returns:
+        Dictionary with solutions as keys and lists of vulnerabilities as values
+    """
+    categorized = defaultdict(list)
+    
+    for vuln in vulnerabilities:
+        solution = vuln['solution']
+        categorized[solution].append(vuln)
+    
+    return categorized
+
+
+def export_to_csv(vulnerabilities, output_file='high_severity_vulnerabilities.csv'):
+    """Export HIGH severity vulnerabilities to pipe-delimited CSV file."""
     if not vulnerabilities:
-        print("No vulnerabilities to export.")
+        print("No HIGH severity vulnerabilities found to export.")
         return
     
+    # Categorize by solution
+    categorized = categorize_by_solution(vulnerabilities)
+    
+    print(f"\n✓ Found {len(vulnerabilities)} HIGH severity vulnerabilities")
+    print(f"✓ Categorized into {len(categorized)} different solutions\n")
+    
+    # Print category summary
+    print("Solution Categories:")
+    print("-" * 80)
+    for idx, (solution, vulns) in enumerate(categorized.items(), 1):
+        solution_preview = solution[:60] + '...' if len(solution) > 60 else solution
+        print(f"{idx}. {solution_preview} ({len(vulns)} vulnerabilities)")
+    print()
+    
+    # Write to CSV with pipe delimiter
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = [
-            'name', 
-            'severity', 
-            'package_name', 
-            'package_version',
-            'cve',
-            'description', 
-            'solution', 
-            'identifiers',
-            'id'
-        ]
+        fieldnames = ['name', 'description', 'severity', 'solution']
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|')
         
         writer.writeheader()
-        writer.writerows(vulnerabilities)
+        
+        # Write vulnerabilities grouped by solution
+        for solution in sorted(categorized.keys()):
+            for vuln in categorized[solution]:
+                writer.writerow(vuln)
     
-    print(f"✓ Successfully exported {len(vulnerabilities)} vulnerabilities to '{output_file}'")
+    print(f"✓ Successfully exported to '{output_file}' (pipe-delimited)")
+    print(f"  Fields: name | description | severity | solution")
+
+
+def export_categorized_csv(vulnerabilities, output_file='high_severity_by_solution.csv'):
+    """Export vulnerabilities with solution category grouping."""
+    if not vulnerabilities:
+        print("No HIGH severity vulnerabilities found to export.")
+        return
     
-    # Print summary
-    print("\nSummary by Severity:")
-    print("-" * 40)
-    severity_count = {}
-    for vuln in vulnerabilities:
-        severity = vuln['severity']
-        severity_count[severity] = severity_count.get(severity, 0) + 1
+    categorized = categorize_by_solution(vulnerabilities)
     
-    for severity in ['Critical', 'High', 'Medium', 'Low', 'Unknown', 'Info']:
-        count = severity_count.get(severity, 0)
-        if count > 0:
-            print(f"{severity:12s}: {count}")
+    with open(output_file, 'w', newline='', encoding='utf-8') as f:
+        fieldnames = ['solution_category', 'name', 'description', 'severity', 'solution']
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|')
+        
+        writer.writeheader()
+        
+        # Write vulnerabilities grouped by solution with category marker
+        for category_num, (solution, vulns) in enumerate(sorted(categorized.items()), 1):
+            for vuln in vulns:
+                row = vuln.copy()
+                row['solution_category'] = f"Category_{category_num}"
+                writer.writerow(row)
+    
+    print(f"✓ Also exported categorized version to '{output_file}'")
+    print(f"  Fields: solution_category | name | description | severity | solution")
 
 
 def main():
-    """Main function to parse and export GitLab vulnerability report to CSV."""
+    """Main function to parse and export HIGH severity vulnerabilities to CSV."""
     
     # Check command line arguments
     if len(sys.argv) < 2:
         print("Usage: python gitlab_vuln_parser.py <vulnerability_json_file> [output_csv_file]")
         print("\nExample:")
         print("  python gitlab_vuln_parser.py gl-dependency-scanning-report.json")
-        print("  python gitlab_vuln_parser.py gl-dependency-scanning-report.json vulnerabilities.csv")
+        print("  python gitlab_vuln_parser.py gl-dependency-scanning-report.json high_vulns.csv")
+        print("\nNote: Only HIGH severity vulnerabilities will be extracted")
+        print("      Output will be pipe-delimited (|) CSV")
         sys.exit(1)
     
     json_file = sys.argv[1]
@@ -124,14 +158,21 @@ def main():
     else:
         # Auto-generate CSV filename from JSON filename
         json_path = Path(json_file)
-        csv_file = json_path.stem + '_vulnerabilities.csv'
+        csv_file = json_path.stem + '_high_severity.csv'
     
     # Parse the JSON file
     print(f"Parsing GitLab vulnerability report: {json_file}")
+    print("Filtering: HIGH severity only")
     vulnerabilities = parse_gitlab_vulnerabilities(json_file)
     
     # Export to CSV
     export_to_csv(vulnerabilities, csv_file)
+    
+    # Also export categorized version
+    categorized_file = csv_file.replace('.csv', '_categorized.csv')
+    export_categorized_csv(vulnerabilities, categorized_file)
+    
+    print(f"\n✓ Done! Total HIGH severity vulnerabilities: {len(vulnerabilities)}")
 
 
 if __name__ == '__main__':

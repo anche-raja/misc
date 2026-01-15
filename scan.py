@@ -12,6 +12,64 @@ from pathlib import Path
 from collections import defaultdict
 
 
+def clean_text(text):
+    """
+    Clean text by removing newlines, extra spaces, and special characters.
+    
+    Args:
+        text: Text to clean
+        
+    Returns:
+        Cleaned text
+    """
+    if not text or text == 'N/A':
+        return text
+    
+    # Replace newlines with spaces
+    text = text.replace('\n', ' ').replace('\r', ' ')
+    
+    # Replace multiple spaces with single space
+    text = ' '.join(text.split())
+    
+    # Remove pipe characters to avoid CSV delimiter conflicts
+    text = text.replace('|', ' ')
+    
+    return text.strip()
+
+
+def summarize_description(description, max_length=200):
+    """
+    Summarize description to a maximum length.
+    
+    Args:
+        description: Full description text
+        max_length: Maximum length for summary
+        
+    Returns:
+        Summarized description
+    """
+    description = clean_text(description)
+    
+    if len(description) <= max_length:
+        return description
+    
+    # Find the last sentence that fits
+    sentences = description.split('. ')
+    summary = ""
+    
+    for sentence in sentences:
+        if len(summary) + len(sentence) + 2 <= max_length:
+            summary += sentence + '. '
+        else:
+            break
+    
+    # If no complete sentence fits, just truncate
+    if not summary:
+        summary = description[:max_length-3] + '...'
+    
+    return summary.strip()
+
+
 def parse_gitlab_vulnerabilities(json_file_path):
     """
     Parse GitLab dependency scanning JSON file and extract HIGH severity vulnerabilities.
@@ -46,11 +104,14 @@ def parse_gitlab_vulnerabilities(json_file_path):
         severity = vuln.get('severity', '').upper()
         
         if severity == 'HIGH':
+            raw_description = vuln.get('description', 'N/A')
+            raw_solution = vuln.get('solution', 'N/A')
+            
             vuln_info = {
-                'name': vuln.get('name', 'N/A'),
-                'description': vuln.get('description', 'N/A'),
+                'name': clean_text(vuln.get('name', 'N/A')),
+                'description': summarize_description(raw_description, max_length=250),
                 'severity': vuln.get('severity', 'N/A'),
-                'solution': vuln.get('solution', 'N/A'),
+                'solution': clean_text(raw_solution),
             }
             vulnerabilities.append(vuln_info)
     
@@ -96,10 +157,12 @@ def export_to_csv(vulnerabilities, output_file='high_severity_vulnerabilities.cs
         print(f"{idx}. {solution_preview} ({len(vulns)} vulnerabilities)")
     print()
     
-    # Write to CSV with pipe delimiter
+    # Write to CSV with pipe delimiter and proper quoting
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['name', 'description', 'severity', 'solution']
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|')
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|', 
+                               quoting=csv.QUOTE_MINIMAL, 
+                               quotechar='"')
         
         writer.writeheader()
         
@@ -110,6 +173,7 @@ def export_to_csv(vulnerabilities, output_file='high_severity_vulnerabilities.cs
     
     print(f"✓ Successfully exported to '{output_file}' (pipe-delimited)")
     print(f"  Fields: name | description | severity | solution")
+    print(f"  Note: Descriptions are summarized to ~250 characters max")
 
 
 def export_categorized_csv(vulnerabilities, output_file='high_severity_by_solution.csv'):
@@ -122,7 +186,9 @@ def export_categorized_csv(vulnerabilities, output_file='high_severity_by_soluti
     
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['solution_category', 'name', 'description', 'severity', 'solution']
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|')
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='|',
+                               quoting=csv.QUOTE_MINIMAL,
+                               quotechar='"')
         
         writer.writeheader()
         

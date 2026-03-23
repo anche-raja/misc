@@ -1,0 +1,40 @@
+Task - Design infrastructure and come up with documentation and Naming conventions.
+
+ECR Repository Provisioning in Non Prod Services account
+	Repository policy restricts push/pull access to authorized IAM roles only.
+	Resource tagging is applied to all ECR resources.
+	Lifecycle policy is configured to retain the images or cleanup the expired.
+
+CI Pipeline - Create Internal App image and Push to ECR
+	CI pipeline that automatically builds the Docker image(internal app), tags it, and pushes it to ECR on every merge to main.
+	
+
+ACM Certs for ALB (Tech Ops)
+	request and validate an ACM SSL/TLS certificate for the application domain via Terraform using DNS validation against the Route 53 private hosted zone
+	Create the certs and upload to the ACM.
+
+IAM Roles and policies for ECS task execution and task runtime
+	ECS Task Execution Role is created with AmazonECSTaskExecutionRolePolicy managed policy attached
+	ECS Task Execution Role additionally allows ecr:GetAuthorizationToken, ecr:BatchGetImage, ecr:GetDownloadUrlForLayer
+	ECS Task Role (runtime role) is created separately with only application-specific permissions (e.g. DynamoDB, S3, Secrets Manager)
+	Secrets Manager / SSM GetSecretValue permission is scoped to specific secret ARNs — no wildcard resource
+	Both roles follow naming convention and are tagged consistently
+	IAM roles are defined as Terraform modules, reusable per environment
+	No inline policies with wildcard (*) actions are present — all policies pass checkov scans
+
+Infrastructure
+	Security group for ECS tasks allows inbound only from ALB security group on the application port
+	Security group for ALB allows inbound on 443 and 80 from corporate CIDR / VPC CIDR only (internal)
+	Route 53 alias record (A record, alias type) is created 
+	Alias target is the internal ALB DNS name and hosted zone ID
+	Create ALB and ALB HTTPS listener is created on port 443 with the ACM certificate ARN
+	HTTPS listener default action forwards traffic to the ECS target group
+	SSL policy is set to a modern security policy (e.g. ELBSecurityPolicy-TLS13-1-2-2021-06 or equivalent) — no TLS 1.0/1.1
+
+
+
+Create ECS Cluster, Task Definition & Service 
+	Provision an ECS Cluster (Fargate launch type) with capacity providers 
+	Define the ECS Task Definition with container specs, resource limits, secrets injection, and CloudWatch logging
+	Provision the ECS Service with rolling deployment, desired count, and ALB target group integration
+

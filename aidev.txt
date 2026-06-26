@@ -7,3 +7,8 @@ https://www.youtube.com/watch?v=qB7AobjQqsU
 
 Build Smarter with AI-Driven Development Life Cycle (AI-DLC)
 https://www.youtube.com/watch?v=5kUb_IZdlB8
+
+Building your first production-ready AI agent with Amazon Bedrock AgentCore | AWS Show & Tell
+https://www.youtube.com/watch?v=wzIQDPFQx30
+
+

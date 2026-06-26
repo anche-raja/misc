@@ -1,0 +1,9 @@
+https://www.deeplearning.ai/courses/ai-agents-in-langgraph
+https://skillbuilder.aws/learn/TM4ZAXTGEZ/building-generative-ai-applications-using-amazon-bedrock/WM6Z6ZHU7K
+https://skillbuilder.aws/learning-plan/5C9XQBTXBB/generative-ai-learning-plan-for-developers-includes-labs/EGATKJP13J
+
+Navigating the AI-powered SDLC from backlog to production
+https://www.youtube.com/watch?v=qB7AobjQqsU
+
+Build Smarter with AI-Driven Development Life Cycle (AI-DLC)
+https://www.youtube.com/watch?v=5kUb_IZdlB8

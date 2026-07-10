@@ -1,0 +1,196 @@
+# Enterprise Gen AI Developer Curriculum
+
+**Purpose:** A role-based training program that takes experienced software engineers from "I've called an LLM API once" to "I can design, build, and ship production Gen AI applications and agents in an enterprise." Every resource below is **free**.
+
+---
+
+## Who this is for
+
+Working application developers (backend, full-stack, platform) who already know how to ship software, source control, REST/JSON, and at least one of Python / Node.js / Java. No prior ML or data-science background is assumed — we treat Gen AI as an *engineering* discipline (APIs, integration, eval, deployment), not a research one.
+
+**Recommended baseline before starting:** comfort with Python *or* TypeScript for hands-on labs, basic command line, and a free API key from at least one provider (Anthropic, OpenAI, or Google AI Studio) plus an AWS account if you deploy on Bedrock.
+
+---
+
+## How the program is structured
+
+The curriculum is built as **6 phases** (Phase 0 → Phase 5). Each phase lists its learning goal, the free courses that teach it, and the concrete thing a developer can build by the end.
+
+After the phases you'll find three **delivery options** (an 8-week cohort, a 3-week fast track, and an AWS-native track), a set of **enterprise capstone projects**, and a **master link list**.
+
+Vendors used: **Anthropic Academy**, **AWS Skill Builder**, **Google / Kaggle**, **DeepLearning.AI**, **Hugging Face**, **OpenAI Academy**. Many courses issue a free, LinkedIn-shareable certificate (noted with 🎓).
+
+---
+
+## Phase 0 — Foundations (how LLMs actually work + prompting)
+
+**Goal:** Shared vocabulary and mental model. Tokens, context windows, temperature, embeddings, prompting patterns, what models can and can't do. Keep this short — experienced devs move fast here.
+
+| Resource | Vendor | Format / Time | Covers |
+|---|---|---|---|
+| **5-Day Gen AI Intensive** (self-paced Kaggle Learn guide) | Google / Kaggle | Whitepapers + Colab labs, ~15h | Foundational models, prompt engineering, embeddings, intro to agents, MLOps. The best free conceptual grounding available. |
+| **AI Fluency: Framework & Foundations** 🎓 | Anthropic Academy | Self-paced, ~2h | How to collaborate with models effectively; non-code, good for the whole team incl. PMs. |
+| **OpenAI Academy – fundamentals** | OpenAI | Self-paced | LLM/ChatGPT basics, clear instructions, reviewing outputs, responsible use. |
+
+> *Optional deeper dive for the curious:* DeepLearning.AI's short courses **"How Transformer LLMs Work"** and **"Attention in Transformers"** explain the architecture under the hood.
+
+**By end of Phase 0:** a developer can explain what an LLM is doing, write a structured prompt with few-shot examples, and reason about cost/latency tradeoffs.
+
+---
+
+## Phase 1 — Building with LLM APIs (the core build skill)
+
+**Goal:** Go from prompts to real application code — multi-turn conversations, system prompts, structured/JSON output, tool calling, streaming, image/PDF input, prompt caching. This is the load-bearing phase; everything later builds on it.
+
+| Resource | Vendor | Format / Time | Covers |
+|---|---|---|---|
+| **Building with the Claude API** 🎓 | Anthropic Academy | 84 lessons, 8h+ video, 10 quizzes | The flagship developer course: auth, multi-turn, system prompts, prompt evaluation & engineering, **tool use**, **RAG**, extended thinking, image/PDF processing, prompt caching, MCP, and agentic patterns. Python + JSON. |
+| **anthropics/courses** GitHub notebooks | Anthropic | Jupyter, code-along | Five notebook sets you run locally — ideal for devs who learn by doing rather than watching. |
+| **Structured outputs with Pydantic** / **Function calling** | DeepLearning.AI | Short, 1–2h each | Reliable typed outputs and tool/function-calling — the backbone of any robust LLM app. |
+
+**By end of Phase 1:** a developer can build a multi-turn assistant that returns validated structured data and calls functions/tools — deployable as a service.
+
+---
+
+## Phase 2 — RAG (grounding answers on enterprise data)
+
+**Goal:** Connect models to private/recent/domain-specific data so answers are grounded, not hallucinated. This is the single most common enterprise pattern — internal Q&A, support assistants, document search.
+
+| Resource | Vendor | Format / Time | Covers |
+|---|---|---|---|
+| **Retrieval Augmented Generation (RAG)** 🎓 | DeepLearning.AI | 5 modules, hands-on | End-to-end production RAG: retrievers, vector DBs (Weaviate), semantic vs BM25 vs hybrid search, chunking, prompt design, evaluation, latency/cost tradeoffs. Real e-commerce/healthcare datasets. The best free RAG course. |
+| **Building Agentic RAG with LlamaIndex** | DeepLearning.AI | Short | Routers, tool-calling over docs, multi-document research agents that adapt retrieval based on findings. |
+| **Knowledge Graphs for RAG** | DeepLearning.AI + Neo4j | Short | Graph-based retrieval for structured/relational domains (finance, records) where vector search loses context. |
+| **Building Gen AI Applications Using Amazon Bedrock** | AWS Skill Builder | Self-paced + labs | RAG via Bedrock **Knowledge Bases** — the managed path if you deploy on AWS. |
+
+**By end of Phase 2:** a developer can build a grounded Q&A system over a private document set, choose the right retrieval strategy, and measure answer quality.
+
+---
+
+## Phase 3 — Agentic AI (from single agent to multi-agent systems)
+
+**Goal:** Build systems that *act* — plan, use tools, loop, maintain memory, and recover from errors — instead of returning a single response. This is the frontier most enterprises are investing in now.
+
+| Resource | Vendor | Format / Time | Covers |
+|---|---|---|---|
+| **Agentic AI** (taught by Andrew Ng) | DeepLearning.AI | Multi-module | Building agentic systems that take action through iterative, multi-step workflows. Framework-agnostic foundations. |
+| **5-Day AI Agents Intensive** (self-paced Kaggle Learn guide) | Google / Kaggle | Whitepapers + codelabs | Core agent components — models, **tools**, orchestration, **memory**, **evaluation** — and moving from prototype to production. Uses Google's Agent Development Kit (ADK); Day 2 covers tools + MCP. |
+| **AI Agents Course** 🎓 | Hugging Face | Self-paced + leaderboard | Hands-on with **smolagents**, **LlamaIndex**, **LangGraph**; deploy agents to HF Spaces. Beginner-friendly, community-driven. |
+| **Multi AI Agent Systems with crewAI** / **AI Agents in LangGraph** / **Evaluating AI Agents** | DeepLearning.AI | Short, 1–3h each | Multi-agent orchestration, graph-based control flow, and systematic agent evaluation. |
+
+**By end of Phase 3:** a developer can build a tool-using agent with memory that completes a multi-step task, and a multi-agent workflow where specialized agents collaborate.
+
+---
+
+## Phase 4 — MCP & enterprise tool/system integration
+
+**Goal:** Standardize how agents connect to your real systems (databases, internal APIs, file stores, SaaS) using the Model Context Protocol — instead of bespoke glue code per integration. Critical for enterprise, where the value is in connecting to *your* data and tools.
+
+| Resource | Vendor | Format / Time | Covers |
+|---|---|---|---|
+| **Introduction to Model Context Protocol** 🎓 | Anthropic Academy | Self-paced, Python SDK | Build MCP servers and clients from scratch; the three core primitives — **tools, resources, prompts**; testing with the MCP Inspector. |
+| **MCP: Advanced Topics** 🎓 | Anthropic Academy | Self-paced | Sampling, progress/logging notifications, root-based file access, transport mechanisms (STDIO, Streamable HTTP) for production servers. |
+| **MCP Course** 🎓 (built with Anthropic) | Hugging Face | Self-paced + certificate | Theory → design → practice; deployment using the HF ecosystem; real-world assignments. Good complement to the Anthropic courses. |
+| **MCP with external tools** short courses | DeepLearning.AI | Short | Practical MCP-server usage (e.g., file discovery/extraction) and agent-to-agent (A2A) patterns. |
+
+**By end of Phase 4:** a developer can wrap an internal system as an MCP server and connect an agent to it through a standard interface.
+
+---
+
+## Phase 5 — Production & enterprise concerns
+
+**Goal:** Everything between a working demo and a system you can run in production — evaluation, safety/guardrails, observability, cost control, and deployment. This is where most enterprise projects succeed or stall.
+
+| Resource | Vendor | Format / Time | Covers |
+|---|---|---|---|
+| **Claude with Amazon Bedrock** 🎓 | Anthropic Academy | Self-paced | Native AWS integration: API calls, tool use, and retrieval pipelines on Bedrock — plus **Guardrails** for content safety. |
+| **Claude with Google Vertex AI** 🎓 | Anthropic Academy | Self-paced | Same patterns on GCP Vertex (streaming, tool use, vision, PDF, citations) if your stack is Google. |
+| **Optimize RAG: efficiency, security & cost** | DeepLearning.AI | Short | Query speed, cost, and security hardening for RAG in production. |
+| **Generative AI Learning Plan for Developers (with labs)** | AWS Skill Builder | Learning plan + labs | Broader AWS deployment, monitoring, and IaC context; aligns with AWS certification prep. |
+
+> **Deployment/scale note:** For teams going deep on AWS, **Amazon Bedrock AgentCore** is the managed path to deploy, scale, and observe agents in production (runtime, built-in observability of tool calls, short- and long-term agent memory). AWS Skill Builder and AWS's free Twitch training cover it.
+
+**By end of Phase 5:** a developer can deploy a Gen AI app with guardrails, evaluate it against a test set, monitor it, and reason about cost at scale.
+
+---
+
+## Delivery options
+
+Pick the shape that fits your org. All draw from the same phases above.
+
+### Option A — 8-week developer cohort (recommended)
+A balanced, hands-on rollout with a weekly lab and a final capstone.
+
+| Week | Focus | Primary resource |
+|---|---|---|
+| 1 | Foundations + prompting | Google/Kaggle 5-Day Gen AI (Days 1–2) + AI Fluency |
+| 2–3 | Building with LLM APIs | Building with the Claude API |
+| 4 | RAG fundamentals | DeepLearning.AI RAG (modules 1–3) |
+| 5 | Advanced/agentic RAG | DeepLearning.AI RAG (4–5) + Agentic RAG with LlamaIndex |
+| 6 | Agentic AI | Andrew Ng's Agentic AI + Google/Kaggle 5-Day Agents |
+| 7 | MCP + integration | Anthropic Intro to MCP + MCP Advanced Topics |
+| 8 | Production + capstone | Claude on Bedrock/Vertex + capstone demo day |
+
+### Option B — 3-week fast track (for senior engineers)
+Skip foundations; assume strong devs who just need the new patterns.
+- **Week 1:** Building with the Claude API (focus on tool use, structured output, RAG sections)
+- **Week 2:** DeepLearning.AI RAG + Andrew Ng's Agentic AI
+- **Week 3:** Anthropic Intro to MCP + a small agent-with-tools capstone
+
+### Option C — AWS-native track (for teams shipping on AWS/Bedrock)
+For shops standardized on AWS (matches an AWS/Java/Python/DynamoDB/Postgres stack).
+1. AWS **Generative AI Learning Plan for Developers (with labs)**
+2. AWS **Building Gen AI Applications Using Amazon Bedrock** (Knowledge Bases for RAG, Guardrails)
+3. Anthropic **Claude with Amazon Bedrock** + **Intro to MCP**
+4. **Amazon Bedrock AgentCore** for deploy/scale/observability
+5. *(Optional credential)* AWS **Certified AI Practitioner** → **Certified Generative AI Developer – Professional**; exam-prep plans are free on Skill Builder.
+
+---
+
+## Enterprise capstone projects
+
+Have developers build one of these to consolidate the program. Each maps cleanly to a real enterprise need and exercises multiple phases.
+
+1. **Internal knowledge assistant (RAG)** — Q&A over company docs/wikis with source citations and an eval set. *Phases 1–2, 5.*
+2. **Support/ops triage agent** — an agent that reads a ticket, queries internal systems via MCP, drafts a response, and escalates when unsure. *Phases 3–5.*
+3. **Document-processing pipeline** — extract → validate (structured output) → route → human-in-the-loop approval for invoices/contracts/forms. *Phases 1–3.*
+4. **Database copilot** — natural-language querying over Postgres/DynamoDB with guardrails on what it can read/write. *Phases 1, 4, 5.*
+5. **Multi-agent report builder** — researcher + writer + reviewer agents that produce a reviewed deliverable. *Phase 3.*
+
+**Suggested rubric:** grounded/correct outputs · safe (guardrails, scoped permissions) · evaluated (test set + metrics) · observable (logging/tracing) · cost-aware.
+
+---
+
+## Master resource list
+
+**Anthropic Academy** (free, most issue certificates) — https://www.anthropic.com/learn · catalog: https://anthropic.skilljar.com
+- Building with the Claude API · Introduction to MCP: https://anthropic.skilljar.com/introduction-to-model-context-protocol · MCP Advanced Topics: https://anthropic.skilljar.com/model-context-protocol-advanced-topics · Claude with Vertex AI: https://anthropic.skilljar.com/claude-with-google-vertex
+- Code notebooks: the **anthropics/courses** repo on GitHub
+
+**AWS Skill Builder** (free tier) — https://skillbuilder.aws/generative-ai
+- Gen AI Learning Plan for Developers (labs): https://skillbuilder.aws/learning-plan/5C9XQBTXBB/generative-ai-learning-plan-for-developers-includes-labs/EGATKJP13J
+- Building Gen AI Apps Using Amazon Bedrock: https://skillbuilder.aws/learn/TM4ZAXTGEZ/building-generative-ai-applications-using-amazon-bedrock/WM6Z6ZHU7K
+
+**Google / Kaggle** (free, self-paced)
+- 5-Day Gen AI Intensive: https://www.kaggle.com/learn-guide/5-day-genai
+- 5-Day AI Agents Intensive: https://www.kaggle.com/learn-guide/5-day-agents
+
+**DeepLearning.AI** (free short courses; full courses free to audit) — https://www.deeplearning.ai/courses
+- RAG: https://www.deeplearning.ai/courses/retrieval-augmented-generation
+- Agentic AI: https://www.deeplearning.ai/courses/agentic-ai
+- Building Agentic RAG with LlamaIndex: https://www.deeplearning.ai/courses/building-agentic-rag-with-llamaindex
+- AI Agents in LangGraph: https://www.deeplearning.ai/courses/ai-agents-in-langgraph
+
+**Hugging Face** (free, certificates) — https://huggingface.co/learn
+- AI Agents Course: https://huggingface.co/learn/agents-course
+- MCP Course (with Anthropic): https://huggingface.co/learn/mcp-course/unit0/introduction
+
+**OpenAI Academy** (free) — https://academy.openai.com
+
+---
+
+## Notes
+
+- **"Free" status and links can change.** Vendor catalogs update often; verify before each cohort. Some Coursera-hosted versions of these courses are free only in **audit** mode (no paid certificate) — the versions linked above are free on the vendors' own platforms.
+- **Certificates (🎓):** Anthropic Academy, Hugging Face, and DeepLearning.AI issue completion certificates suitable for LinkedIn; Google/Kaggle issue completion badges. These are useful for tracking internal completion and recognizing developers.
+- **Keep it hands-on.** The strongest signal of competence is a shipped capstone, not a certificate. Weight the program toward building.

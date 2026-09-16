@@ -1,0 +1,78 @@
+Here is a 60-minute interview plan, split into timed blocks. Each block has the questions to ask and what a strong answer sounds like, so you can score consistently even if you are not deep in the stack yourself.
+
+Block 1: Background and migration track record (5 min)
+
+Walk me through a legacy Java migration you personally led or did most of the hands-on work for. What was the starting stack and what did it end on?
+What went wrong in that migration, and what would you do differently?
+How large was the codebase and how long did the migration take? How many people?
+Good answer: specific numbers, a concrete failure story, and an honest lesson. Weak answer: only describes greenfield Spring Boot work or "I upgraded a pom file".
+
+Block 2: Java 8 to Java 21 or 25 (10 min)
+
+What breaks when you move a Java 8 app to Java 17 or later? Name at least four things.
+Good answer: removal of JAXB, JAX-WS, CORBA and Activation from the JDK, strong encapsulation of internal APIs so reflection into sun.* or java.base fails, removal of Nashorn, removal of Security Manager, CMS garbage collector removed, old TLS versions disabled.
+How would you find every place in a large codebase that depends on a removed or encapsulated internal API before you switch the JDK?
+Good answer: jdeps with --jdk-internals, then compile and run tests on the new JDK with --illegal-access history explained, plus tools like OpenRewrite or the Eclipse Migration Toolkit for Java.
+Which Java 8 libraries commonly cannot run on Java 17 or later and what do you replace them with? Examples to probe: Lombok versions, old Mockito and PowerMock, old ASM and CGLIB, Javassist, old Jackson, old Hibernate.
+What is the practical difference between upgrading the runtime only and raising the language level? Would you do them at the same time?
+Good answer: upgrade runtime first, keep source and target at 8 initially, then raise language level once tests are green. Two separate risks, two separate rollbacks.
+Which newer Java features would you actually use in a migrated codebase, and which would you avoid introducing during the migration?
+Good answer: records, switch expressions, text blocks and virtual threads are worth adopting later. During the migration, avoid refactoring for style. Behavior-preserving changes only.
+What garbage collector and JVM flag changes do you expect, and how would you validate memory and latency after the JDK change?
+Block 3: Spring upgrade to Spring 6 or Spring Boot 3 or 4 (10 min)
+
+What is the minimum Java version for Spring Framework 6 and Spring Boot 3, and why does that matter for sequencing the migration?
+Good answer: Java 17. So the JDK step must complete first.
+Explain the javax to jakarta namespace change. What does it affect, and what does it not affect?
+Good answer: servlet, JPA, validation, JMS, mail, transaction and annotation packages move to jakarta.*. It does not affect javax.sql, javax.crypto or other packages that live in the JDK itself. Every third-party library that touches these APIs needs a jakarta-compatible version.
+Is the application XML-configured, annotation-configured, or a mix? How would you migrate XML bean definitions and what would you keep?
+Good answer: XML still works in Spring 6. Migrate incrementally with @ImportResource, do not rewrite everything up front.
+Which Spring modules and integrations have been removed or changed in a way that breaks legacy code? Probe for: Spring Security config moving from WebSecurityConfigurerAdapter to a SecurityFilterChain bean, removal of ant-style path matching defaults, trailing slash matching change, RestTemplate versus RestClient, JSP support in embedded Tomcat, Spring Data query changes.
+How do you handle a Spring 3.x or 4.x app that cannot jump straight to 6? Do you go through 5.3 first?
+Good answer: yes, Spring 5.3 is the intended bridge release. Jumping across two majors hides the cause of failures.
+How would you tackle transaction management and JPA or Hibernate version compatibility? Hibernate 6 changes query semantics and ID generation defaults.
+Block 4: Struts (10 min)
+
+This is the hardest part of your migration. Spend real time here.
+
+Which Struts version is the app on, 1.x or 2.x? What is the difference in migration effort between them?
+Good answer: Struts 1 has been end of life since 2013 with unpatched CVEs. There is no upgrade path, only a rewrite of the web layer. Struts 2 can be upgraded to 6.x or 7.x, but 7 requires Jakarta EE and Java 17.
+Given a Struts 1 app with, say, 300 actions and 400 JSPs, how would you replace the web layer? What are the options and how do you choose?
+Good answer: Spring MVC controllers with the JSPs kept initially, or a new REST API plus a separate frontend. The choice depends on whether the business wants a UI refresh. Strong candidates talk about a strangler pattern, running both frameworks side by side on different URL prefixes, and migrating one module at a time.
+How do you map Struts concepts to Spring MVC? Ask them to map ActionForm, Action, struts-config forwards, validation XML, Tiles and the Struts tag libraries.
+How do you keep the app releasable during a web-layer rewrite that takes months?
+Good answer: feature-flag routes, shared session handling between the two frameworks, and regression tests recorded against the old UI.
+If the app is Struts 2, which security fixes and breaking changes matter between 2.3, 2.5 and 6.x? Probe for OGNL, the removal of the Struts 2 REST plugin defaults, and the struts.xml changes.
+Block 5: J2EE, application server and infrastructure (10 min)
+
+What application server is the app on today? Ask how they would decide between staying on WebLogic, WebSphere or JBoss versus moving to embedded Tomcat with Spring Boot.
+Good answer: it depends on EJBs, JMS, JTA distributed transactions and vendor-specific features. If the app uses EJB 2 entity beans or container-managed transactions across multiple resources, the move is much bigger than it looks.
+If there are EJBs, how do you migrate them? Ask them to describe stateless session beans to Spring services, message-driven beans to Spring JMS listeners, and what to do with EJB 2 entity beans.
+How do you handle JNDI datasources, vendor-specific deployment descriptors and server-managed security realms in a Spring Boot world?
+What build tool is the app on? If it is Ant or Maven 2, what is your plan?
+How would you containerize the result and what changes in configuration management, logging and health checks?
+What do you do with Log4j 1.x, Commons libraries and other dependencies with known vulnerabilities?
+Block 6: Strategy, testing and risk (10 min)
+
+Give me the ordered plan. What goes first, second and third, and why?
+Good answer: dependency inventory and vulnerability scan, build tool cleanup, JDK runtime upgrade, Spring bridge release, jakarta namespace, Spring 6 or Boot 3, then Struts replacement as a separate longer project. They should explain why each step is a separately testable and reversible checkpoint.
+The app has almost no automated tests. How do you get confidence that you have not changed behavior?
+Good answer: characterization tests before touching anything, recorded HTTP regression suites, database snapshot comparisons, and parallel-run in a staging environment with production traffic replay.
+What automated migration tooling have you used? Ask about OpenRewrite recipes for Spring Boot and jakarta, the Eclipse Transformer, and IDE-driven refactors. Ask what these tools get wrong.
+How do you estimate the effort? What are the biggest unknowns that could double the estimate?
+How do you handle a production rollback if the new runtime shows a memory or performance regression?
+How would you report progress to a non-technical stakeholder week by week?
+Block 7: Practical exercise and candidate questions (5 min)
+
+Read them a short scenario: after moving to Java 17, the app fails on startup with InaccessibleObjectException from a serialization library. What do you do?
+Good answer: identify the library from the stack trace, upgrade it, and only use --add-opens as a temporary measure with a tracked ticket to remove it.
+Second scenario: after the jakarta change, a filter declared in web.xml silently stops running. Why?
+Good answer: the filter class still imports javax.servlet, so the container never recognizes it. Check for jars still on the old namespace.
+Leave the last few minutes for their questions. A strong candidate asks about test coverage, deployment frequency, whether the business wants a UI refresh, and who owns the app server.
+How to score
+
+Weight the blocks roughly like this: Struts and strategy matter most, since those are where migrations fail. Java and Spring knowledge is table stakes. A candidate who can only describe Spring Boot greenfield work but cannot explain the Struts 1 dead end or the Spring 5.3 bridge release is a risk for this role.
+
+Before the interview, confirm four facts about your own app so you can ask sharper follow-ups: the Struts version, whether EJBs are present, the application server, and the current automated test coverage.
+
+If you want this as a shareable scoring sheet for other interviewers, I can publish it as a page with a per-question score column.

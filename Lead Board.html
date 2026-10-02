@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lead Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef0ec;
+    --surface: #ffffff;
+    --surface-2: #f6f7f4;
+    --ink: #1f2a2e;
+    --ink-2: #4d5c63;
+    --muted: #8a979d;
+    --line: #d8ddd8;
+    --accent: #1f6f78;
+    --accent-ink: #ffffff;
+    --danger: #b3432b;
+    --c-inbox: #c98a1b;
+    --c-todo: #5a6b73;
+    --c-doing: #1f6f78;
+    --c-waiting: #7a4ea3;
+    --c-done: #3c8a4f;
+    --shadow: 0 1px 2px rgba(31,42,46,.08), 0 6px 18px rgba(31,42,46,.06);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161b1d;
+      --surface: #1f2629;
+      --surface-2: #262e32;
+      --ink: #e6ebec;
+      --ink-2: #b4c0c5;
+      --muted: #7f8d93;
+      --line: #334045;
+      --accent: #4fb3bd;
+      --accent-ink: #0e1a1c;
+      --danger: #e07a5f;
+      --c-inbox: #e0a33a;
+      --c-todo: #8b9ba3;
+      --c-doing: #4fb3bd;
+      --c-waiting: #b08ad8;
+      --c-done: #6fbf80;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161b1d; --surface: #1f2629; --surface-2: #262e32; --ink: #e6ebec; --ink-2: #b4c0c5;
+    --muted: #7f8d93; --line: #334045; --accent: #4fb3bd; --accent-ink: #0e1a1c; --danger: #e07a5f;
+    --c-inbox: #e0a33a; --c-todo: #8b9ba3; --c-doing: #4fb3bd; --c-waiting: #b08ad8; --c-done: #6fbf80;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    margin: 0; height: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.45;
+    display: flex; flex-direction: column;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Top bar */
+  .top {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 20px 10px;
+  }
+  .brand { font-weight: 600; font-size: 17px; letter-spacing: -.01em; margin-right: 4px; }
+  .brand span { color: var(--muted); font-weight: 400; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+  .tab {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+    padding: 5px 12px; display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2);
+  }
+  .tab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tabc, var(--muted)); }
+  .tab .n { color: var(--muted); font-size: 12px; }
+  .tab.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .tab.on .n { color: inherit; opacity: .7; }
+  .tab.add { border-style: dashed; color: var(--muted); }
+  .tools { display: flex; gap: 6px; align-items: center; }
+  .icon-btn {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+    padding: 6px 10px; color: var(--ink-2); font-size: 13px;
+  }
+  .icon-btn:hover { border-color: var(--ink-2); color: var(--ink); }
+
+  /* Capture bar: the one thing on the page that is loud */
+  .capture {
+    margin: 4px 20px 12px; background: var(--surface); border-radius: 14px;
+    box-shadow: var(--shadow); border: 1px solid var(--line);
+    display: grid; grid-template-columns: 1fr auto; gap: 0; overflow: hidden;
+  }
+  .capture input[type="text"] {
+    border: 0; background: transparent; padding: 16px 18px; font-size: 18px; min-width: 0;
+  }
+  .capture input::placeholder { color: var(--muted); }
+  .capture .side { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 0; }
+  .capture select {
+    border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px;
+    padding: 7px 8px; font-size: 13px; color: var(--ink-2); max-width: 140px;
+  }
+  .capture .go {
+    background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 9px;
+    padding: 9px 14px; font-weight: 600;
+  }
+  .hint { margin: -6px 22px 10px; font-size: 12.5px; color: var(--muted); }
+  .hint kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; background: var(--surface); }
+
+  /* Board */
+  .board {
+    flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr);
+    gap: 12px; padding: 0 20px 20px; overflow-x: auto; overflow-y: hidden; min-height: 0;
+    scroll-snap-type: x proximity;
+  }
+  .col {
+    display: flex; flex-direction: column; min-height: 0; scroll-snap-align: start;
+    border-top: 3px solid var(--colc); border-radius: 10px 10px 0 0;
+  }
+  .col.inbox { --colc: var(--c-inbox); }
+  .col.todo { --colc: var(--c-todo); }
+  .col.doing { --colc: var(--c-doing); }
+  .col.waiting { --colc: var(--c-waiting); }
+  .col.done { --colc: var(--c-done); }
+  .col-head { display: flex; align-items: baseline; gap: 8px; padding: 10px 6px 8px; }
+  .col-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .col-head .count { color: var(--muted); font-size: 13px; }
+  .col-head .sub { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .col-head button { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 12px; padding: 2px 4px; }
+  .col-head button:hover { color: var(--danger); }
+  .cards { flex: 1; overflow-y: auto; padding: 2px 4px 8px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; border-radius: 8px; }
+  .cards.over { background: color-mix(in srgb, var(--colc) 12%, transparent); outline: 2px dashed var(--colc); outline-offset: -2px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 10px 6px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; cursor: grab; position: relative;
+  }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .45; }
+  .card .t { font-weight: 500; overflow-wrap: anywhere; }
+  .col.done .card .t { color: var(--ink-2); text-decoration: line-through; text-decoration-color: var(--muted); }
+  .card .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; font-size: 12px; color: var(--muted); align-items: center; }
+  .chip { padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+  .chip.thought { border-color: var(--c-inbox); color: var(--c-inbox); }
+  .chip.decision { border-color: var(--c-waiting); color: var(--c-waiting); }
+  .chip.risk { border-color: var(--danger); color: var(--danger); }
+  .chip.app { background: var(--surface-2); border-color: transparent; }
+  .due.late { color: var(--danger); font-weight: 500; }
+  .due.soon { color: var(--c-inbox); font-weight: 500; }
+  .card .notes { margin-top: 6px; font-size: 13px; color: var(--ink-2); white-space: pre-wrap; display: none; }
+  .card.open .notes { display: block; }
+  .card .mv { position: absolute; top: 8px; right: 8px; display: none; gap: 2px; }
+  .card .mv button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 6px; width: 26px; height: 26px; padding: 0; color: var(--ink-2); font-size: 13px; }
+  @media (hover: none) { .card .mv { display: flex; } .card { padding-right: 66px; } }
+  .card:hover .mv { display: flex; }
+  .card:hover { border-color: var(--ink-2); }
+
+  /* Dialogs */
+  dialog {
+    border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink);
+    padding: 0; width: min(520px, calc(100vw - 32px)); box-shadow: var(--shadow);
+  }
+  dialog::backdrop { background: rgba(10,14,16,.45); }
+  .dlg { padding: 18px 20px 16px; display: grid; gap: 12px; }
+  .dlg h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  .dlg label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+  .dlg input, .dlg select, .dlg textarea {
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); width: 100%;
+  }
+  .dlg textarea { min-height: 90px; resize: vertical; font-family: inherit; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 4px; }
+  .actions .spacer { flex: 1; }
+  .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.danger { color: var(--danger); border-color: transparent; background: none; }
+  .btn.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sw { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; }
+  .sw.on { border-color: var(--ink); }
+  .small { font-size: 12.5px; color: var(--muted); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 999px; font-size: 13px;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  @media (max-width: 640px) {
+    .top { padding: 10px 14px 8px; }
+    .capture { margin: 2px 14px 10px; grid-template-columns: 1fr; }
+    .capture input[type="text"] { font-size: 16px; padding: 14px 14px 8px; }
+    .capture .side { padding: 0 10px 10px; }
+    .capture select { flex: 1; max-width: none; }
+    .hint { display: none; }
+    .board { padding: 0 14px 14px; grid-auto-columns: 82vw; scroll-snap-type: x mandatory; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Lead Board <span id="dateLabel"></span></div>
+  <nav class="tabs" id="tabs" aria-label="Apps"></nav>
+  <div class="tools">
+    <input id="search" class="icon-btn" type="search" placeholder="Search  /" style="width:150px" aria-label="Search items">
+    <button class="icon-btn" id="btnApp" title="Rename or delete this app">App</button>
+    <button class="icon-btn" id="btnBackup">Backup</button>
+    <button class="icon-btn" id="btnTheme" title="Toggle theme">◐</button>
+  </div>
+</header>
+
+<div class="capture">
+  <input id="capture" type="text" placeholder="Capture a thought, task, or decision…" autocomplete="off">
+  <div class="side">
+    <select id="captureApp" aria-label="App for this item"></select>
+    <select id="captureType" aria-label="Item type">
+      <option value="task">Task</option>
+      <option value="thought">Thought</option>
+      <option value="decision">Decision</option>
+      <option value="risk">Risk</option>
+      <option value="question">Question</option>
+    </select>
+    <button class="go" id="captureGo">Add to inbox</button>
+  </div>
+</div>
+<div class="hint">Press <kbd>Enter</kbd> to capture. Click a card to edit, drag it between columns. Nothing leaves this browser.</div>
+
+<main class="board" id="board"></main>
+
+<dialog id="dlgItem">
+  <form class="dlg" method="dialog" id="formItem">
+    <h3 id="itemTitle">Edit item</h3>
+    <label>Title <input name="title" required maxlength="200"></label>
+    <div class="row">
+      <label>App <select name="appId" id="itemApp"></select></label>
+      <label>Type <select name="type">
+        <option value="task">Task</option><option value="thought">Thought</option>
+        <option value="decision">Decision</option><option value="risk">Risk</option><option value="question">Question</option>
+      </select></label>
+    </div>
+    <div class="row">
+      <label>Column <select name="col">
+        <option value="inbox">Inbox</option><option value="todo">To do</option><option value="doing">In progress</option>
+        <option value="waiting">Waiting on</option><option value="done">Done</option>
+      </select></label>
+      <label>Due <input name="due" type="date"></label>
+    </div>
+    <label>Waiting on (person) <input name="who" placeholder="e.g. Priya, vendor, infra team" maxlength="80"></label>
+    <label>Notes <textarea name="notes" placeholder="Context, links, next step…"></textarea></label>
+    <div class="actions">
+      <button type="button" class="btn danger" id="itemDelete">Delete</button>
+      <span class="spacer small" id="itemStamp"></span>
+      <button type="button" class="btn" value="cancel" id="itemCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgApp">
+  <form class="dlg" method="dialog" id="formApp">
+    <h3 id="appTitle">New app</h3>
+    <label>Name <input name="name" required maxlength="40" placeholder="e.g. Payments API"></label>
+    <label>Color <div class="swatches" id="swatches"></div></label>
+    <div class="actions">
+      <button type="button" class="btn danger" id="appDelete">Delete app and its items</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="appCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgBackup">
+  <div class="dlg">
+    <h3>Backup</h3>
+    <p class="small" style="margin:0">Data lives in this browser only. Copy the backup somewhere safe (a note, a repo, a file) and paste it back here to restore on another machine.</p>
+    <textarea id="backupText" style="min-height:160px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px" spellcheck="false"></textarea>
+    <div class="actions">
+      <button type="button" class="btn" id="backupCopy">Copy backup</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="backupClose">Close</button>
+      <button type="button" class="btn primary" id="backupRestore">Restore from text</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  const KEY = 'leadboard.v1';
+  const COLS = [
+    { id: 'inbox',   name: 'Inbox',       sub: 'raw thoughts' },
+    { id: 'todo',    name: 'To do',       sub: '' },
+    { id: 'doing',   name: 'In progress', sub: '' },
+    { id: 'waiting', name: 'Waiting on',  sub: 'follow up' },
+    { id: 'done',    name: 'Done',        sub: '' },
+  ];
+  const COLORS = ['#1f6f78', '#c98a1b', '#7a4ea3', '#3c8a4f', '#b3432b', '#2f5f9e', '#8a6d3b', '#5a6b73'];
+  const ALL = '__all__';
+
+  // ---------- state ----------
+  let state = load();
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const s = JSON.parse(raw); if (s && Array.isArray(s.apps) && Array.isArray(s.items)) return s; }
+    } catch (e) { console.warn('storage read failed', e); }
+    return seed();
+  }
+  function seed() {
+    const a = { id: uid(), name: 'My first app', color: COLORS[0] };
+    return {
+      apps: [a], current: a.id,
+      items: [
+        { id: uid(), appId: a.id, title: 'Rename this app (App button) and add your real ones', type: 'task', col: 'inbox', notes: '', who: '', due: '', created: Date.now(), updated: Date.now() },
+        { id: uid(), appId: a.id, title: 'Capture everything into Inbox, sort it each morning', type: 'thought', col: 'inbox', notes: 'Do today, schedule it, or delegate it.', who: '', due: '', created: Date.now(), updated: Date.now() },
+      ]
+    };
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { toast('Could not save (storage unavailable)'); console.warn(e); }
+  }
+  function uid() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  function app(id) { return state.apps.find(a => a.id === id); }
+  function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  // ---------- rendering ----------
+  const $ = s => document.querySelector(s);
+  const tabsEl = $('#tabs'), boardEl = $('#board'), searchEl = $('#search');
+  const captureEl = $('#capture'), captureApp = $('#captureApp'), captureType = $('#captureType');
+
+  function render() {
+    renderTabs(); renderCaptureApps(); renderBoard();
+  }
+  function renderTabs() {
+    const openCount = a => state.items.filter(i => i.appId === a.id && i.col !== 'done').length;
+    const allOpen = state.items.filter(i => i.col !== 'done').length;
+    let h = `<button class="tab ${state.current === ALL ? 'on' : ''}" data-app="${ALL}">All <span class="n">${allOpen}</span></button>`;
+    for (const a of state.apps) {
+      h += `<button class="tab ${state.current === a.id ? 'on' : ''}" data-app="${a.id}" style="--tabc:${a.color}"><span class="dot"></span>${esc(a.name)} <span class="n">${openCount(a)}</span></button>`;
+    }
+    h += `<button class="tab add" data-app="__new__">+ App</button>`;
+    tabsEl.innerHTML = h;
+  }
+  function renderCaptureApps() {
+    const sel = captureApp.value;
+    captureApp.innerHTML = state.apps.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+    captureApp.value = state.current !== ALL ? state.current : (state.apps.some(a => a.id === sel) ? sel : (state.apps[0]?.id || ''));
+    captureEl.placeholder = state.current === ALL ? 'Capture a thought, task, or decision…' : `What's on your mind for ${app(state.current)?.name || 'this app'}?`;
+  }
+  function visibleItems() {
+    const q = searchEl.value.trim().toLowerCase();
+    return state.items.filter(i =>
+      (state.current === ALL || i.appId === state.current) &&
+      (!q || (i.title + ' ' + i.notes + ' ' + i.who + ' ' + (app(i.appId)?.name || '')).toLowerCase().includes(q))
+    );
+  }
+  function renderBoard() {
+    const items = visibleItems();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let h = '';
+    for (const c of COLS) {
+      const list = items.filter(i => i.col === c.id).sort(sorter(c.id));
+      h += `<section class="col ${c.id}" data-col="${c.id}">
+        <div class="col-head"><h2>${c.name}</h2><span class="count">${list.length}</span>
+          ${c.id === 'done' && list.length ? `<button data-clear="1">Clear done</button>` : `<span class="sub">${c.sub}</span>`}
+        </div>
+        <div class="cards" data-col="${c.id}">`;
+      if (!list.length) h += `<div class="empty">${emptyText(c.id)}</div>`;
+      for (const i of list) h += cardHtml(i, today);
+      h += `</div></section>`;
+    }
+    boardEl.innerHTML = h;
+  }
+  function emptyText(col) {
+    return { inbox: 'Nothing captured yet.', todo: 'Drag here when it is real work.', doing: 'What are you on right now?', waiting: 'Items blocked on someone else.', done: 'Finished items land here.' }[col];
+  }
+  function sorter(col) {
+    return (a, b) => {
+      if (col === 'done') return b.updated - a.updated;
+      const ad = a.due || '9999', bd = b.due || '9999';
+      return ad !== bd ? ad.localeCompare(bd) : a.created - b.created;
+    };
+  }
+  function cardHtml(i, today) {
+    const a = app(i.appId);
+    let due = '';
+    if (i.due) {
+      const d = new Date(i.due + 'T00:00:00'); const diff = Math.round((d - today) / 86400000);
+      const cls = diff < 0 ? 'late' : diff <= 2 ? 'soon' : '';
+      const txt = diff === 0 ? 'Due today' : diff === 1 ? 'Due tomorrow' : diff < 0 ? `${-diff}d overdue` : `Due ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+      due = `<span class="due ${cls}">${txt}</span>`;
+    }
+    const type = i.type !== 'task' ? `<span class="chip ${i.type}">${i.type}</span>` : '';
+    const appChip = state.current === ALL && a ? `<span class="chip app" style="color:${a.color}">${esc(a.name)}</span>` : '';
+    const who = i.who ? `<span>→ ${esc(i.who)}</span>` : '';
+    const noteMark = i.notes ? `<span title="Has notes">≡</span>` : '';
+    const idx = COLS.findIndex(c => c.id === i.col);
+    return `<article class="card" draggable="true" data-id="${i.id}" tabindex="0">
+      <div class="t">${esc(i.title)}</div>
+      ${(type || appChip || due || who || noteMark) ? `<div class="meta">${appChip}${type}${due}${who}${noteMark}</div>` : ''}
+      ${i.notes ? `<div class="notes">${esc(i.notes)}</div>` : ''}
+      <div class="mv">
+        ${idx > 0 ? `<button data-mv="-1" title="Move left" aria-label="Move left">‹</button>` : ''}
+        ${idx < COLS.length - 1 ? `<button data-mv="1" title="Move right" aria-label="Move right">›</button>` : ''}
+      </div>
+    </article>`;
+  }
+
+  // ---------- capture ----------
+  function capture() {
+    const title = captureEl.value.trim();
+    if (!title) return;
+    const appId = captureApp.value || state.apps[0]?.id;
+    if (!appId) { toast('Add an app first'); return; }
+    state.items.push({ id: uid(), appId, title, type: captureType.value, col: 'inbox', notes: '', who: '', due: '', created: Date.now(), updated: Date.now() });
+    captureEl.value = '';
+    save(); render(); captureEl.focus();
+  }
+  captureEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); capture(); } });
+  $('#captureGo').addEventListener('click', capture);
+
+  // ---------- tabs ----------
+  tabsEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-app]'); if (!b) return;
+    const id = b.dataset.app;
+    if (id === '__new__') return openApp(null);
+    state.current = id; save(); render();
+  });
+  $('#btnApp').addEventListener('click', () => {
+    if (state.current === ALL) { toast('Pick an app tab first'); return; }
+    openApp(state.current);
+  });
+
+  // ---------- board interactions ----------
+  boardEl.addEventListener('click', e => {
+    const mv = e.target.closest('[data-mv]');
+    if (mv) {
+      const id = mv.closest('.card').dataset.id, it = state.items.find(i => i.id === id);
+      const idx = COLS.findIndex(c => c.id === it.col) + Number(mv.dataset.mv);
+      moveItem(id, COLS[Math.max(0, Math.min(COLS.length - 1, idx))].id); return;
+    }
+    if (e.target.closest('[data-clear]')) {
+      const scope = visibleItems().filter(i => i.col === 'done').map(i => i.id);
+      if (!scope.length) return;
+      if (confirm(`Remove ${scope.length} done item${scope.length > 1 ? 's' : ''}?`)) {
+        state.items = state.items.filter(i => !scope.includes(i.id)); save(); render();
+      }
+      return;
+    }
+    const card = e.target.closest('.card');
+    if (card) openItem(card.dataset.id);
+  });
+  boardEl.addEventListener('keydown', e => {
+    const card = e.target.closest('.card'); if (!card || e.target !== card) return;
+    if (e.key === 'Enter') openItem(card.dataset.id);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const it = state.items.find(i => i.id === card.dataset.id);
+      const idx = COLS.findIndex(c => c.id === it.col) + (e.key === 'ArrowRight' ? 1 : -1);
+      if (idx >= 0 && idx < COLS.length) { e.preventDefault(); moveItem(it.id, COLS[idx].id); boardEl.querySelector(`[data-id="${it.id}"]`)?.focus(); }
+    }
+  });
+  function moveItem(id, col) {
+    const it = state.items.find(i => i.id === id); if (!it || it.col === col) return;
+    it.col = col; it.updated = Date.now(); save(); render();
+  }
+
+  // drag and drop
+  let dragId = null;
+  boardEl.addEventListener('dragstart', e => {
+    const card = e.target.closest('.card'); if (!card) return;
+    dragId = card.dataset.id; card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+  });
+  boardEl.addEventListener('dragend', () => { dragId = null; boardEl.querySelectorAll('.dragging,.over').forEach(el => el.classList.remove('dragging', 'over')); });
+  boardEl.addEventListener('dragover', e => {
+    const zone = e.target.closest('.cards'); if (!zone || !dragId) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    boardEl.querySelectorAll('.cards.over').forEach(z => z !== zone && z.classList.remove('over'));
+    zone.classList.add('over');
+  });
+  boardEl.addEventListener('dragleave', e => { const zone = e.target.closest('.cards'); if (zone && !zone.contains(e.relatedTarget)) zone.classList.remove('over'); });
+  boardEl.addEventListener('drop', e => {
+    const zone = e.target.closest('.cards'); if (!zone) return;
+    e.preventDefault(); const id = dragId || e.dataTransfer.getData('text/plain');
+    moveItem(id, zone.dataset.col);
+  });
+
+  // ---------- item dialog ----------
+  const dlgItem = $('#dlgItem'), formItem = $('#formItem');
+  let editingId = null;
+  function openItem(id) {
+    const it = state.items.find(i => i.id === id); if (!it) return;
+    editingId = id;
+    $('#itemApp').innerHTML = state.apps.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+    formItem.title.value = it.title; formItem.appId.value = it.appId; formItem.type.value = it.type;
+    formItem.col.value = it.col; formItem.due.value = it.due || ''; formItem.who.value = it.who || ''; formItem.notes.value = it.notes || '';
+    $('#itemStamp').textContent = 'Added ' + new Date(it.created).toLocaleDateString();
+    dlgItem.showModal(); formItem.title.focus();
+  }
+  formItem.addEventListener('submit', e => {
+    e.preventDefault();
+    const it = state.items.find(i => i.id === editingId); if (!it) return dlgItem.close();
+    it.title = formItem.title.value.trim() || it.title; it.appId = formItem.appId.value; it.type = formItem.type.value;
+    it.col = formItem.col.value; it.due = formItem.due.value; it.who = formItem.who.value.trim(); it.notes = formItem.notes.value.trim();
+    if (it.who && it.col === 'inbox') it.col = 'waiting';
+    it.updated = Date.now(); save(); render(); dlgItem.close();
+  });
+  $('#itemCancel').addEventListener('click', () => dlgItem.close());
+  $('#itemDelete').addEventListener('click', () => {
+    if (!confirm('Delete this item?')) return;
+    state.items = state.items.filter(i => i.id !== editingId); save(); render(); dlgItem.close();
+  });
+
+  // ---------- app dialog ----------
+  const dlgApp = $('#dlgApp'), formApp = $('#formApp'), swEl = $('#swatches');
+  let editingApp = null, pickedColor = COLORS[0];
+  function openApp(id) {
+    editingApp = id; const a = id ? app(id) : null;
+    $('#appTitle').textContent = a ? 'Edit app' : 'New app';
+    formApp.name.value = a ? a.name : '';
+    pickedColor = a ? a.color : COLORS[state.apps.length % COLORS.length];
+    $('#appDelete').style.display = a ? '' : 'none';
+    renderSwatches(); dlgApp.showModal(); formApp.name.focus();
+  }
+  function renderSwatches() {
+    swEl.innerHTML = COLORS.map(c => `<button type="button" class="sw ${c === pickedColor ? 'on' : ''}" style="background:${c}" data-c="${c}" aria-label="Pick color"></button>`).join('');
+  }
+  swEl.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) { pickedColor = b.dataset.c; renderSwatches(); } });
+  formApp.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = formApp.name.value.trim(); if (!name) return;
+    if (editingApp) { const a = app(editingApp); a.name = name; a.color = pickedColor; }
+    else { const a = { id: uid(), name, color: pickedColor }; state.apps.push(a); state.current = a.id; }
+    save(); render(); dlgApp.close();
+  });
+  $('#appCancel').addEventListener('click', () => dlgApp.close());
+  $('#appDelete').addEventListener('click', () => {
+    const a = app(editingApp); const n = state.items.filter(i => i.appId === editingApp).length;
+    if (!confirm(`Delete "${a.name}" and its ${n} item${n === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    state.apps = state.apps.filter(x => x.id !== editingApp);
+    state.items = state.items.filter(i => i.appId !== editingApp);
+    state.current = state.apps[0]?.id || ALL; save(); render(); dlgApp.close();
+  });
+
+  // ---------- backup ----------
+  const dlgBackup = $('#dlgBackup'), backupText = $('#backupText');
+  $('#btnBackup').addEventListener('click', () => { backupText.value = JSON.stringify(state, null, 2); dlgBackup.showModal(); });
+  $('#backupClose').addEventListener('click', () => dlgBackup.close());
+  $('#backupCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(backupText.value); toast('Backup copied'); }
+    catch { backupText.select(); toast('Select all and copy manually'); }
+  });
+  $('#backupRestore').addEventListener('click', () => {
+    try {
+      const s = JSON.parse(backupText.value);
+      if (!s || !Array.isArray(s.apps) || !Array.isArray(s.items)) throw new Error('shape');
+      if (!confirm(`Replace current data with ${s.apps.length} app(s) and ${s.items.length} item(s)?`)) return;
+      state = s; if (!state.apps.some(a => a.id === state.current) && state.current !== ALL) state.current = state.apps[0]?.id || ALL;
+      save(); render(); dlgBackup.close(); toast('Restored');
+    } catch { toast('That text is not a valid backup'); }
+  });
+
+  // ---------- misc ----------
+  searchEl.addEventListener('input', renderBoard);
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input,textarea,select') || document.querySelector('dialog[open]')) return;
+    if (e.key === '/') { e.preventDefault(); searchEl.focus(); searchEl.select(); }
+    if (e.key === 'n' || e.key === 'c') { e.preventDefault(); captureEl.focus(); }
+  });
+  $('#btnTheme').addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme === 'dark' || (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem(KEY + '.theme', root.dataset.theme); } catch {}
+  });
+  try { const t = localStorage.getItem(KEY + '.theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+  $('#dateLabel').textContent = new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+  let toastTimer;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
+
+  render();
+})();
+</script>
+</body>
+</html>

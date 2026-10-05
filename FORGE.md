@@ -1,3 +1,5 @@
+
+
 # Detailed Prompt: Replicate the "AMS Internal Asset Management" Java Application
 
 Use this document as a build prompt/spec to recreate an equivalent Java application with the **same tech stack, same library versions, and same architecture** as the original system. GitLab/CI configuration is intentionally excluded — this covers only the application itself.
@@ -36,7 +38,7 @@ ams-internal/                       (main application, packaging=pom, aggregator
 Use a placeholder groupId such as `com.example.ams` (pick any groupId your organization prefers — this is just a placeholder).
 
 ---
-
+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
 ## 2. Exact Dependency & Plugin Versions (Maven, from parent BOM)
 
 Java: **1.8** (`maven.compiler.source` / `target` = 1.8; no separate compiler-plugin version override was pinned — just rely on the default properties, or explicitly set `maven-compiler-plugin` to a version compatible with Java 8).
